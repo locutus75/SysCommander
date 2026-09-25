@@ -36,7 +36,7 @@ const KEYMAP = {
   ArrowUp: 'jump', KeyW: 'jump', KeyZ: 'jump', Space: 'jump',
   KeyX: 'fire', ControlLeft: 'fire', ControlRight: 'fire', KeyF: 'fire',
   KeyC: 'pogo', AltLeft: 'pogo', AltRight: 'pogo',
-  Enter: 'start', Escape: 'pause', KeyP: 'pause', KeyM: 'mute',
+  Enter: 'start', Escape: 'pause', KeyP: 'pause', KeyM: 'mute', KeyN: 'music',
 };
 function press(a) { if (!keys[a]) pressed[a] = true; keys[a] = true; }
 function release(a) { keys[a] = false; }
@@ -555,6 +555,7 @@ function newGame(level = 0) {
 function update() {
   G.t++; G.stateT++;
   if (pressed.mute) SFX.toggle();
+  if (pressed.music) Music.toggle();
   const go = pressed.start || pressed.jump || pressed.fire;
   switch (G.state) {
     case 'title':
@@ -590,6 +591,22 @@ function update() {
     default: break;
   }
   for (const k in pressed) pressed[k] = false;
+  syncMusic();
+}
+
+// Pick the soundtrack for the current screen / era.
+function syncMusic() {
+  let track = null;
+  switch (G.state) {
+    case 'title': track = 'title'; break;
+    case 'intro': case 'play': case 'paused':
+      track = L && L.boss && L.boss.dead ? 'victory' : L.def.theme; break;
+    case 'gameover': track = 'gameover'; break;
+    case 'victory': track = 'victory'; break;
+    default: track = null; // levelDone: let the fanfare play alone
+  }
+  Music.play(track);
+  Music.hold(G.state === 'paused' || (G.state === 'play' && L.p.dead));
 }
 
 // ---------- rendering ----------
@@ -697,7 +714,7 @@ function renderTitle() {
   if ((G.t >> 5) & 1) textS('PRESS ENTER', VW / 2, y + 98, '#ffffff', 'center');
   textS(`HI ${String(G.hiscore).padStart(7, '0')}`, VW / 2, y + 114, '#7aa5ff', 'center');
   text('ARROWS MOVE  Z JUMP  X FIRE  C POGO', VW / 2, VH - 16, '#e8f0ff', 'center');
-  text('M MUTE  P PAUSE', VW / 2, VH - 8 + 0, '#9ab', 'center');
+  text('M MUTE  N MUSIC  P PAUSE', VW / 2, VH - 8, '#9ab', 'center');
 }
 
 function renderIntro() {
@@ -786,6 +803,7 @@ function render() {
     default: break;
   }
   if (SFX.muted) text('MUTE', VW - 3, VH - 10, '#ff6b6b', 'right');
+  else if (!Music.enabled && G.state === 'title') text('MUSIC OFF', VW - 3, VH - 10, '#ff6b6b', 'right');
 }
 
 // ---------- boot ----------

@@ -18,7 +18,7 @@ or from any static host, such as GitHub Pages.
 | Fire Z-DAG blaster | X, Ctrl, F |
 | Pogo stick on/off | C, Alt (hold jump while bouncing for big hops) |
 | Start / confirm | Enter |
-| Pause / mute | P or Esc / M |
+| Pause / mute all / music on-off | P or Esc / M / N |
 
 Touch devices get on-screen buttons.
 
@@ -45,6 +45,9 @@ Touch devices get on-screen buttons.
 - `js/render.js` draws all the art procedurally with pixel rectangles. There are no image assets.
 - `js/game.js` holds the game loop, physics, enemies, boss and screens.
 - `js/audio.js` synthesizes the sound effects with WebAudio.
+- `js/music.js` is the chiptune soundtrack: a small step sequencer (pulse-wave lead, triangle bass,
+  arpeggios, noise drums) with a tune for the title, each era, victory and game over. Tracks are
+  written as chords plus 16-step note lines, so they're easy to edit.
 
 Debug URL parameters: `?level=3` starts at era 3, and `?god` makes you invincible.
 
