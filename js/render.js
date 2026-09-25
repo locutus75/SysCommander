@@ -17,6 +17,7 @@ const THEMES = {
   exchange: { sky: ['#030a07', '#0d2a1d'], ground: '#2a303c', speck: '#1b1f27', top: '#5b6b85', topDark: '#3a465a', plat: '#8a95a8', platDark: '#4b5566', spike: '#ef4444', door: '#16a34a' },
   winter: { sky: ['#7fb8ea', '#dff0ff'], ground: '#56677d', speck: '#3e4b5c', top: '#ffffff', topDark: '#c7def0', plat: '#9fb6cc', platDark: '#6c8199', spike: '#d8f1ff', door: '#0ea5e9' },
   gas: { sky: ['#140a24', '#43204f'], ground: '#4b3a2c', speck: '#33261c', top: '#7c7f86', topDark: '#55585e', plat: '#a0845c', platDark: '#6b5535', spike: '#ff9f1c', door: '#8b5cf6' },
+  rollux: { sky: ['#04061a', '#150a33'], ground: '#141a3a', speck: '#0b1030', top: '#00e5ff', topDark: '#0091a8', plat: '#3b4a78', platDark: '#222c50', spike: '#ff2bd6', door: '#00c2d6' },
   siege: { sky: ['#0d0203', '#3a0909'], ground: '#2d2b3a', speck: '#1d1b27', top: '#a3a3b8', topDark: '#6b6b80', plat: '#6b6b80', platDark: '#3f3f50', spike: '#ff3b3b', door: '#1f5eff' },
 };
 
@@ -170,6 +171,41 @@ function drawBackground(themeName, camX, camY, t) {
         text('999 GWEI', x - 2, VH - bh - 23, (t >> 4) & 1 ? '#ff4d4d' : '#ff9f1c');
       }
     }
+  } else if (themeName === 'rollux') {
+    // synthwave sun
+    const sx0 = Math.round(VW / 2 - camX * 0.02), sy0 = 92;
+    for (let dy = -34; dy <= 0; dy++) {
+      if (dy > -18 && mod(dy, 6) < 2) continue;
+      const w = Math.round(Math.sqrt(34 * 34 - dy * dy));
+      R(sx0 - w, sy0 + dy, w * 2, 1, dy < -20 ? '#ffd166' : dy < -10 ? '#ff8fab' : '#ff2bd6');
+    }
+    R(0, sy0 + 1, VW, 1, '#ff2bd6');
+    // perspective neon grid
+    for (let i = -24; i <= 24; i++) {
+      ctx.strokeStyle = '#3a1466';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(VW / 2 + i * 6 - mod(camX * 0.05, 6), sy0 + 2);
+      ctx.lineTo(VW / 2 + i * 50 - mod(camX * 0.6, 50), VH);
+      ctx.stroke();
+    }
+    for (let j = 0; j < 9; j++) R(0, sy0 + 2 + Math.round(j * j * 1.3), VW, 1, '#3a1466');
+    // transactions streaming into rollup batches
+    const par = 0.3, bw = 150;
+    const k0 = Math.floor((camX * par) / bw) - 1;
+    for (let k = k0; k < k0 + VW / bw + 3; k++) {
+      const x = Math.round(k * bw - camX * par);
+      for (let lane = 0; lane < 3; lane++) {
+        for (let d = 0; d < 4; d++) {
+          const px = x + Math.round(mod(t * 0.6 + d * 25 + lane * 9, 100));
+          R(px, 30 + lane * 9, 3, 3, lane === 1 ? '#00e5ff' : '#7c5cff');
+        }
+      }
+      R(x + 102, 24, 34, 28, '#00e5ff');
+      R(x + 103, 25, 32, 26, '#0b1030');
+      text('TX', x + 111, 29, '#00e5ff');
+      text('x99', x + 107, 39, '#ff2bd6');
+    }
   } else if (themeName === 'siege') {
     // perspective grid
     const hy = 110;
@@ -198,7 +234,7 @@ function drawBackground(themeName, camX, camY, t) {
 }
 
 // ---------- tiles ----------
-const isSolidChar = (c) => c === '#' || c === '~' || c === 'G' || c === 'R' || c === 'D';
+const isSolidChar = (c) => c === '#' || c === '~' || c === 'G' || c === 'R' || c === 'D' || c === '>' || c === '<';
 
 function drawTile(c, tx, ty, sx, sy, th, t, above) {
   const h = hash(tx * 7349 + ty * 131);
@@ -229,6 +265,25 @@ function drawTile(c, tx, ty, sx, sy, th, t, above) {
       R(sx + 1, sy, 2, T, dark); R(sx + T - 3, sy, 2, T, dark);
       R(sx + 4, sy + 2, 2, T - 4, 'rgba(255,255,255,0.25)');
       if (!isSolidChar(above)) { R(sx + 7, sy - 5, 2, 5, dark); R(sx + 1, sy, T - 2, 1, '#ffffff55'); }
+      break;
+    }
+    case '>': case '<': { // rollup conveyor lane
+      R(sx, sy, T, T, th.ground);
+      R(sx, sy, T, 6, '#1d2447');
+      R(sx, sy, T, 1, th.top);
+      R(sx, sy + 6, T, 1, th.topDark);
+      const dirc = c === '>' ? 1 : -1;
+      const off = mod(Math.floor(t * 0.8) * dirc, 8);
+      for (let i = -1; i < 3; i++) {
+        const ax = sx + i * 8 + off;
+        if (ax < sx - 2 || ax > sx + 12) continue;
+        const tip = dirc > 0 ? ax + 3 : ax;
+        R(Math.max(sx, dirc > 0 ? ax : ax + 1), sy + 2, 1, 3, '#ff2bd6');
+        R(Math.max(sx, Math.min(sx + 15, tip)), sy + 3, 1, 1, '#ff2bd6');
+        R(Math.max(sx, Math.min(sx + 15, dirc > 0 ? ax + 1 : ax + 2)), sy + 2, 2, 1, '#ff2bd6');
+        R(Math.max(sx, Math.min(sx + 15, dirc > 0 ? ax + 1 : ax + 2)), sy + 4, 2, 1, '#ff2bd6');
+      }
+      R(sx + (h % 12) + 2, sy + 9 + ((h >>> 5) % 5), 2, 2, th.speck);
       break;
     }
     case '=':
@@ -479,6 +534,21 @@ function drawEnemy(e, sx, sy, t) {
       FLASH = false;
       text('$', sx + (flip ? 14 : 10), sy + 4, '#ffd400');
       if (e.spout > 0) { R(sx + 16, sy - 6, 2, 5, '#7dd3fc'); R(sx + 13, sy - 8, 3, 2, '#7dd3fc'); R(sx + 18, sy - 8, 3, 2, '#7dd3fc'); }
+      break;
+    }
+    case 'x': { // Fraud Bot
+      if (!e.awake) { // disguised as a SYS coin
+        FLASH = false;
+        drawTile('o', Math.floor(e.x / T), 0, sx - 2, sy - 1, THEMES.rollux, t, '.');
+        break;
+      }
+      const r = S(sx - 2, sy - 2, 16, flip);
+      r(7, 0, 2, 2, '#ff2bd6'); r(7, 2, 2, 1, '#9aa3b5');
+      r(2, 3, 12, 9, '#6b7280'); r(3, 4, 10, 1, '#9aa3b5');
+      r(4, 5, 9, 3, '#1a1a2e'); r(8 + (f ? 1 : 0), 6, 3, 1, '#ff2bd6');
+      ellipse(sx - 2 + (flip ? 5 : 10), sy - 2 + 10, 3, 3, C.blue);
+      r(9, 9, 1, 2, '#ffffff');
+      r(3 + f, 12, 3, 4, '#3f4655'); r(10 - f, 12, 3, 4, '#3f4655');
       break;
     }
     case 'X': { // 51% Attacker

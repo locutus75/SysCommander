@@ -3,6 +3,8 @@
 
 const GRAV = 0.35, MAXFALL = 7, WALK = 1.7, JUMP = 5.5, POGO_LOW = 5.0, POGO_HIGH = 7.6;
 const SHOT_SPEED = 5, START_LIVES = 3;
+// Rollup conveyor lanes push whatever stands on them.
+const CONVEYOR = { '>': 0.8, '<': -0.8 };
 
 const EDEF = {
   r: { w: 12, h: 16, hp: 1, score: 200, name: 'RUG PULLER' },
@@ -10,6 +12,7 @@ const EDEF = {
   B: { w: 22, h: 18, hp: 3, score: 500, name: 'BEAR MARKET' },
   g: { w: 14, h: 14, hp: 2, score: 300, name: 'GAS GUZZLER' },
   w: { w: 30, h: 18, hp: 4, score: 800, name: 'WHALE', fly: true },
+  x: { w: 12, h: 14, hp: 2, score: 400, name: 'FRAUD BOT' },
   X: { w: 40, h: 40, hp: 14, score: 5000, name: '51% ATTACKER', fly: true, boss: true },
 };
 
@@ -246,7 +249,10 @@ function updatePlayer() {
 
   p.vy = Math.min(MAXFALL, p.vy + GRAV);
   const prevBottom = p.y + p.h;
+  const carry = p.onGround ? CONVEYOR[p.groundTile] || 0 : 0;
+  p.vx += carry;
   const res = moveBody(p);
+  p.vx = res.wall ? 0 : p.vx - carry;
   p.onGround = res.ground;
   p.groundTile = res.groundTile;
   if (res.ceil) p.jumping = false;
@@ -357,10 +363,11 @@ function hazardAhead(e) {
   return tileAt(Math.floor(fx / T), Math.floor((e.y + e.h - 2) / T)) === '^';
 }
 function walker(e, speed) {
-  e.vx = e.dir * speed;
+  e.vx = e.dir * speed + (e.onGround ? CONVEYOR[e.groundTile] || 0 : 0);
   e.vy = Math.min(MAXFALL, e.vy + GRAV);
   const res = moveBody(e);
   e.onGround = res.ground;
+  e.groundTile = res.groundTile;
   if (res.wall) e.dir *= -1;
   else if (e.onGround && (!groundAhead(e) || hazardAhead(e))) e.dir *= -1;
 }
@@ -373,6 +380,23 @@ function updateEnemy(e) {
   const dx = pcx - ecx, dy = (p.y + p.h / 2) - (e.y + e.h / 2);
   switch (e.type) {
     case 'r': walker(e, 0.6); break;
+    case 'x': { // Fraud Bot: poses as a SYS coin until you get close
+      if (!e.awake) {
+        e.vy = Math.min(MAXFALL, e.vy + GRAV);
+        e.vx = 0;
+        e.onGround = moveBody(e).ground;
+        if (Math.abs(dx) < 64 && Math.abs(dy) < 64 && !p.dead) {
+          e.awake = true; e.t = 1; e.vy = -3;
+          popup(e.x - 12, e.y - 12, 'FRAUD!', '#ff2bd6');
+          SFX.clang();
+        }
+        break;
+      }
+      if (e.onGround) e.dir = Math.sign(dx) || e.dir;
+      walker(e, 1.1);
+      if (e.onGround && e.t % 60 === 0) e.vy = -4;
+      break;
+    }
     case 'B': {
       if (!e.charging && Math.abs(dx) < 120 && Math.abs(dy) < 30 && Math.sign(dx) === e.dir && !p.dead) {
         e.charging = 90;
@@ -735,7 +759,7 @@ function renderIntro() {
     ctx.save();
     ctx.translate(x, ty);
     ctx.scale(scale, scale);
-    drawEnemy({ type, dir: -1, flash: 0, shield: false, spout: 0 }, 0, type === 'f' ? 4 : 0, G.t);
+    drawEnemy({ type, dir: -1, flash: 0, shield: false, spout: 0, awake: true }, 0, type === 'f' ? 4 : 0, G.t);
     ctx.restore();
     x += type === 'w' ? 40 : 28;
   }
@@ -765,7 +789,7 @@ function renderGameOver() {
 
 const EPILOGUE = [
   'The 51% Attacker is defeated and the chain stands firm.',
-  'From genesis through flash crashes, frozen winters and gas wars, SysCommander never gave up.',
+  'From genesis through flash crashes, frozen winters, gas wars and rollups, SysCommander never gave up.',
   'Bitcoin-grade security. EVM power. A community that keeps building.',
   'THE END ... FOR NOW.',
 ];

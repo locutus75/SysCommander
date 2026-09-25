@@ -73,6 +73,19 @@ const Music = (() => {
         ['B', 'D#6 . - . B5 . - . F#5 . - . D#5 . . .'],
       ],
     },
+    rollux: {
+      bpm: 128, bass: 'octave', arp: true, drums: 'rock',
+      bars: [
+        ['Bm', 'B4 . D5 . F#5 . B5 . A5 . F#5 . D5 . F#5 .'],
+        ['G', 'G5 . - . B5 . - . A5 . G5 . F#5 . D5 .'],
+        ['D', 'F#5 . A5 . D6 . - . C#6 . A5 . F#5 . A5 .'],
+        ['A', 'E5 . - . A5 . C#6 . E6 . - . C#6 . . .'],
+        ['Bm', 'D6 . - . C#6 . B5 . F#5 . - . B5 . D6 .'],
+        ['G', 'B5 . D6 . G6 . - . F#6 . E6 . D6 . B5 .'],
+        ['D', 'A5 . D6 . F#6 . - . E6 . D6 . C#6 . A5 .'],
+        ['A', 'C#6 . - . E6 . - . A6 . - . - . . .'],
+      ],
+    },
     siege: {
       bpm: 176, bass: 'boss', arp: true, drums: 'fast',
       bars: [

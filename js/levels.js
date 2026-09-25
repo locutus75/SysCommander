@@ -5,12 +5,14 @@
  * Tile legend
  *   .  empty            #  ground            ~  ice (slippery)     =  one-way platform
  *   G  green candle     R  red candle        ^  spikes             D  force-field gate
+ *   >  conveyor (pushes right)                <  conveyor (pushes left)
  *   o  SYS coin         b  BTC orb           a  Z-DAG ammo         k  keygem
  *   1  extra life       p  pogo stick        L  chainlock          C  checkpoint (Sentry Node)
  *   !  info sign        E  exit door         P  player start
  * Spawns (removed from the map on load)
  *   r  rug puller       f  FUD ghost         B  bear market        g  gas guzzler
- *   w  whale            X  51% attacker      M  vertical candle platform
+ *   w  whale            X  51% attacker      x  fraud bot (disguised as a coin)
+ *   M  vertical candle platform
  *   N  horizontal platform
  */
 const LEVELS = (() => {
@@ -184,7 +186,7 @@ const LEVELS = (() => {
       signs: [
         '2021. Gas fees are through the roof! Gas guzzlers hop at you - blast them before they land.',
         'Why pay $100 for one swap? The NEVM brings EVM smart contracts to a Bitcoin merge-mined chain.',
-        'NEVM is live! But someone is gathering hashpower for a 51% attack...',
+        'NEVM is live! Next stop: Layer 2, where transactions roll up...',
       ],
       map: build(170, (b) => {
         b.ground(0, 25);
@@ -215,8 +217,59 @@ const LEVELS = (() => {
       }),
     },
     {
+      theme: 'rollux',
+      era: 'ERA V - 2023',
+      title: 'ROLLUX RISING',
+      story: 'Layer 2 time! Rollux, an optimistic rollup, bundles piles of transactions into batches settled on Syscoin. Ride the rollup lanes, and remember: optimistic means trust... but verify. Some coins are not what they seem.',
+      threats: ['x', 'r', 'f'],
+      signs: [
+        '2023. Welcome to Rollux, an optimistic rollup on Syscoin. The neon lanes roll you along!',
+        'Optimistic rollups trust by default until someone proves fraud. If a coin sprouts legs, blast it!',
+        'Rollups bundle many transactions into one batch. Cheap, fast, and still secured by Syscoin.',
+        'Rollux is rolling. But someone is gathering hashpower for a 51% attack...',
+      ],
+      map: build(170, (b) => {
+        b.ground(0, 22);
+        b.set(2, 12, 'P'); b.set(4, 12, '!');
+        b.row(8, 11, 11, 'o');
+        b.row(12, 22, 13, '>');
+        b.row(15, 18, 11, 'o');
+        b.ground(26, 50);
+        b.set(28, 12, '!');
+        b.set(34, 8, 'f');
+        b.rect(36, 11, 37, 12); b.row(36, 37, 10, 'o');
+        b.rect(40, 9, 41, 12); b.set(40, 8, 'o'); b.set(41, 8, 'x');
+        b.set(46, 12, 'r');
+        b.set(49, 12, 'C');
+        b.ground(51, 90);
+        b.row(54, 70, 13, '<');
+        b.row(56, 59, 10, 'o');
+        b.row(62, 63, 12, '^');
+        b.set(66, 12, 'x'); b.set(67, 12, 'o'); b.set(68, 12, 'x');
+        b.set(72, 12, 'a'); b.set(75, 7, 'f');
+        b.rect(78, 9, 79, 12); b.set(78, 8, 'k'); b.set(79, 8, 'b');
+        b.set(83, 12, '!');
+        b.gate(86);
+        b.set(88, 12, 'C');
+        b.set(93, 11, 'N'); b.set(101, 10, 'N');
+        b.row(98, 100, 7, 'o');
+        b.ground(109, 139);
+        b.row(112, 125, 13, '>');
+        b.row(118, 119, 12, '^');
+        b.row(114, 116, 10, 'o');
+        b.set(128, 12, 'r');
+        b.row(130, 134, 11, 'o'); b.set(132, 12, 'x');
+        b.plat(135, 138, 11); b.set(137, 10, '1'); b.set(136, 10, 'b');
+        b.ground(143, 169);
+        b.set(145, 7, 'f');
+        b.set(150, 12, 'x'); b.set(151, 12, 'o'); b.set(152, 12, 'x');
+        b.set(155, 12, 'a');
+        b.set(160, 12, '!'); b.set(166, 12, 'E');
+      }),
+    },
+    {
       theme: 'siege',
-      era: 'ERA V - FINALE',
+      era: 'ERA VI - FINALE',
       title: 'THE 51% SIEGE',
       story: 'A 51% Attacker has rented a mountain of hashpower and wants to rewrite history! Collect all four Chainlocks - finality signed by the Sentry Nodes - to break its shield, then blast it back to the mempool.',
       threats: ['X'],

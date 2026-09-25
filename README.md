@@ -28,7 +28,8 @@ Touch devices get on-screen buttons.
 2. **The Flash Crash (2018)**: the day SYS briefly traded at 96 BTC on a major exchange. Ride the moving price candles and dodge the whales dumping red candles on you.
 3. **Crypto Winter (2018/19)**: slippery ice and charging Bear Markets, while the builders keep shipping (Z-DAG, the SYS-Ethereum bridge).
 4. **The Gas Wars (2021)**: gas guzzlers everywhere. Reach the NEVM.
-5. **The 51% Siege**: boss fight. Collect all 4 Chainlocks to break the 51% Attacker's shield, then blast it.
+5. **Rollux Rising (2023)**: Layer 2! Ride the rollup conveyor lanes, and don't trust every coin: Fraud Bots disguise themselves as SYS coins until you get close.
+6. **The 51% Siege**: boss fight. Collect all 4 Chainlocks to break the 51% Attacker's shield, then blast it.
 
 ## Pickups
 
@@ -49,7 +50,7 @@ Touch devices get on-screen buttons.
   arpeggios, noise drums) with a tune for the title, each era, victory and game over. Tracks are
   written as chords plus 16-step note lines, so they're easy to edit.
 
-Debug URL parameters: `?level=3` starts at era 3, and `?god` makes you invincible.
+Debug URL parameters: `?level=5` starts at era 5, and `?god` makes you invincible.
 
 After editing a level, run the reachability checker. It simulates the player's jump and pogo physics
 and verifies that every keygem, chainlock and exit can be reached:

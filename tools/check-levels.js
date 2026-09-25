@@ -25,7 +25,8 @@ function check(def, idx) {
   }
   let start;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (base[y][x] === 'P') start = { x: x * T + 3, y: (y + 1) * T - PH };
-  const solid = (c, gates) => c === '#' || c === '~' || c === 'G' || c === 'R' || (gates && c === 'D');
+  const solid = (c, gates) => c === '#' || c === '~' || c === 'G' || c === 'R' || c === '>' || c === '<' || (gates && c === 'D');
+  const CONVEYOR = { '>': 0.8, '<': -0.8 };
   const tile = (tx, ty) => (tx < 0 || tx >= W) ? '#' : (ty < 0 || ty >= H) ? '.' : base[ty][tx];
 
   function move(b, gates) {
@@ -35,7 +36,7 @@ function check(def, idx) {
     else if (b.vx < 0) { const tx = Math.floor(b.x / T); for (let ty = top; ty <= bot; ty++) if (solid(tile(tx, ty), gates)) { b.x = (tx + 1) * T; break; } }
     const pb = b.y + PH; b.y += b.vy;
     const l = Math.floor(b.x / T), r = Math.floor((b.x + PW - 0.01) / T);
-    if (b.vy > 0) { const ty = Math.floor((b.y + PH - 0.01) / T); for (let tx = l; tx <= r; tx++) { const c = tile(tx, ty); if (solid(c, gates) || (c === '=' && pb <= ty * T + 0.5)) { b.y = ty * T - PH; b.vy = 0; return true; } } }
+    if (b.vy > 0) { const ty = Math.floor((b.y + PH - 0.01) / T); for (let tx = l; tx <= r; tx++) { const c = tile(tx, ty); if (solid(c, gates) || (c === '=' && pb <= ty * T + 0.5)) { b.y = ty * T - PH; b.vy = 0; b.gt = c; return true; } } }
     else if (b.vy < 0) { const ty = Math.floor(b.y / T); for (let tx = l; tx <= r; tx++) if (solid(tile(tx, ty), gates)) { b.y = (ty + 1) * T; b.vy = 0; break; } }
     return false;
   }
@@ -62,11 +63,13 @@ function check(def, idx) {
     while (q.length) {
       const s = q.shift();
       for (const a of actions) {
-        const b = { x: s.x, y: s.y, vx: a.dir * WALK, vy: a.vy };
+        const b = { x: s.x, y: s.y, vx: a.dir * WALK, vy: a.vy, gt: s.gt };
         let landed = false, dead = false;
         for (let f = 0; f < 240; f++) {
           if (a.cut && b.vy < -2) b.vy = -2;
           b.vy = Math.min(MAXFALL, b.vy + GRAV);
+          const carry = a.walk ? CONVEYOR[b.gt] || 0 : 0;
+          b.vx = a.dir * WALK + carry;
           const g = move(b, gates);
           if (touched(b, got)) { dead = true; break; }
           if (b.y > H * T + 40) { dead = true; break; }
@@ -74,7 +77,7 @@ function check(def, idx) {
         }
         if (!landed || dead) continue;
         const k = key(b);
-        if (!seen.has(k)) { seen.add(k); q.push({ x: b.x, y: b.y }); }
+        if (!seen.has(k)) { seen.add(k); q.push({ x: b.x, y: b.y, gt: b.gt }); }
       }
     }
     return got;
