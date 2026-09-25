@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>SysCommander</title>
+  <meta name="description" content="A Commander Keen style fan game about the Syscoin journey.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root { --blue: #1f5eff; --bg: #05070f; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: #dbe6ff; overflow: hidden;
+      font-family: "Press Start 2P", monospace; -webkit-user-select: none; user-select: none; touch-action: none; }
+    #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+    #game { display: block; image-rendering: pixelated; image-rendering: crisp-edges;
+      width: min(100vw, calc(100vh * 1.6)); height: auto; aspect-ratio: 16 / 10;
+      border: 2px solid #111a3a; box-shadow: 0 0 40px rgba(31, 94, 255, 0.25); background: #000; }
+    #touch { display: none; }
+    body.touch #touch { display: block; }
+    #touch .grp { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; gap: 12px; }
+    #touch .l { left: 14px; }
+    #touch .r { right: 14px; }
+    #touch button { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35);
+      background: rgba(31, 94, 255, 0.28); color: #fff; font: 10px "Press Start 2P", monospace; padding: 0; }
+    #touch button.on { background: rgba(31, 94, 255, 0.7); }
+    #touch .top { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: 10px; display: flex; gap: 8px; }
+    #touch .top button { width: 46px; height: 32px; border-radius: 8px; font-size: 8px; }
+  </style>
+</head>
+<body>
+  <div id="wrap"><canvas id="game" aria-label="SysCommander game"></canvas></div>
+  <div id="touch">
+    <div class="grp l">
+      <button data-key="left" aria-label="Left">&#9664;</button>
+      <button data-key="right" aria-label="Right">&#9654;</button>
+    </div>
+    <div class="grp r">
+      <button data-key="pogo" aria-label="Pogo">POGO</button>
+      <button data-key="fire" aria-label="Fire">FIRE</button>
+      <button data-key="jump" aria-label="Jump">JUMP</button>
+    </div>
+    <div class="top">
+      <button data-key="pause" aria-label="Pause">II</button>
+      <button data-key="mute" aria-label="Mute">SND</button>
+    </div>
+  </div>
+  <script src="js/audio.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
