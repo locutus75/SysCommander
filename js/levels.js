@@ -6,12 +6,14 @@
  *   .  empty            #  ground            ~  ice (slippery)     =  one-way platform
  *   G  green candle     R  red candle        ^  spikes             D  force-field gate
  *   >  conveyor (pushes right)                <  conveyor (pushes left)
+ *   Z  cracked bridge plank (one-way, crumbles when stood on)
  *   o  SYS coin         b  BTC orb           a  Z-DAG ammo         k  keygem
  *   1  extra life       p  pogo stick        L  chainlock          C  checkpoint (Sentry Node)
  *   !  info sign        E  exit door         P  player start
  * Spawns (removed from the map on load)
  *   r  rug puller       f  FUD ghost         B  bear market        g  gas guzzler
  *   w  whale            X  51% attacker      x  fraud bot (disguised as a coin)
+ *   h  bridge hacker
  *   M  vertical candle platform
  *   N  horizontal platform
  */
@@ -148,7 +150,7 @@ const LEVELS = (() => {
         'Crypto winter. Prices froze and the bears came out. Ice is slippery - mind your step!',
         'While the price slept, the builders kept building: Z-DAG brought near-instant payments.',
         'Next: a trustless bridge between SYS and Ethereum. Bears hate this one trick.',
-        'Spring is coming. So are the gas fees...',
+        'Spring is coming... and down by the river, someone is building a bridge.',
       ],
       map: build(160, (b) => {
         b.ground(0, 30);
@@ -178,8 +180,58 @@ const LEVELS = (() => {
       }),
     },
     {
+      theme: 'bridge',
+      era: 'ERA IV - 2019/20',
+      title: 'THE BRIDGE',
+      story: 'Syscoin builds a bridge to Ethereum, so SYS can cross over as a token and come back again. Across the industry, bridges became favourite targets for hackers. Cross the river, mind the cracked planks, and do not let the Bridge Hackers slow you down.',
+      threats: ['h', 'r', 'f'],
+      signs: [
+        '2019. A bridge to Ethereum opens: SYS can cross over as an ERC-20 token and back again.',
+        'Cracked planks crumble a moment after you step on them. Keep moving!',
+        'Bridges elsewhere lost fortunes to hackers. The Syscoin bridge was built to be trustless: proofs, not custodians.',
+        'Across the river the DeFi boom is waiting... and so are the gas fees.',
+      ],
+      map: build(170, (b) => {
+        b.ground(0, 18);
+        b.set(2, 12, 'P'); b.set(4, 12, '!');
+        b.row(7, 10, 11, 'o');
+        b.set(14, 12, 'r');
+        b.row(19, 50, 11, '=');
+        b.rect(24, 12, 24, 15); b.rect(44, 12, 44, 15);
+        b.set(22, 10, '!');
+        b.row(26, 29, 11, 'Z'); b.row(38, 41, 11, 'Z');
+        b.row(30, 33, 10, 'o');
+        b.set(34, 10, 'h');
+        b.row(51, 80, 11, '=');
+        b.rect(51, 7, 52, 10); b.set(51, 6, 'b'); b.set(52, 6, 'o');
+        b.rect(56, 12, 56, 15); b.rect(72, 12, 72, 15);
+        b.set(55, 10, 'a');
+        b.row(58, 61, 11, 'Z'); b.row(66, 70, 11, 'Z');
+        b.row(66, 70, 9, 'o');
+        b.set(62, 7, 'f'); b.set(75, 10, 'h');
+        b.set(78, 10, 'C');
+        b.ground(81, 95);
+        b.set(83, 12, '!');
+        b.rect(86, 11, 87, 12); b.rect(89, 8, 90, 12); b.set(89, 7, 'k'); b.set(90, 7, 'o');
+        b.set(92, 12, 'r');
+        b.gate(95);
+        b.row(96, 130, 11, '=');
+        b.rect(98, 12, 98, 15); b.rect(116, 12, 116, 15);
+        b.row(100, 103, 11, 'Z'); b.row(110, 114, 11, 'Z'); b.row(121, 124, 11, 'Z');
+        b.set(106, 10, 'h'); b.set(119, 10, 'h'); b.set(112, 6, 'f');
+        b.plat(116, 119, 7); b.set(117, 6, '1'); b.set(118, 6, 'b');
+        b.row(126, 129, 10, 'o');
+        b.ground(131, 169);
+        b.set(133, 12, 'C');
+        b.set(140, 12, 'r'); b.set(144, 12, 'a'); b.set(148, 12, 'h');
+        b.row(146, 150, 10, 'o');
+        b.row(152, 153, 12, '^');
+        b.set(160, 12, '!'); b.set(166, 12, 'E');
+      }),
+    },
+    {
       theme: 'gas',
-      era: 'ERA IV - 2021',
+      era: 'ERA V - 2021',
       title: 'THE GAS WARS',
       story: 'DeFi mania! Gas fees on Ethereum explode and gas guzzlers roam the land. Syscoin answers with the NEVM: EVM smart contracts on a chain merge-mined with Bitcoin. Fight your way to it!',
       threats: ['g', 'r', 'f'],
@@ -218,7 +270,7 @@ const LEVELS = (() => {
     },
     {
       theme: 'rollux',
-      era: 'ERA V - 2023',
+      era: 'ERA VI - 2023',
       title: 'ROLLUX RISING',
       story: 'Layer 2 time! Rollux, an optimistic rollup, bundles piles of transactions into batches settled on Syscoin. Ride the rollup lanes, and remember: optimistic means trust... but verify. Some coins are not what they seem.',
       threats: ['x', 'r', 'f'],
@@ -269,7 +321,7 @@ const LEVELS = (() => {
     },
     {
       theme: 'siege',
-      era: 'ERA VI - FINALE',
+      era: 'ERA VII - FINALE',
       title: 'THE 51% SIEGE',
       story: 'A 51% Attacker has rented a mountain of hashpower and wants to rewrite history! Collect all four Chainlocks - finality signed by the Sentry Nodes - to break its shield, then blast it back to the mempool.',
       threats: ['X'],

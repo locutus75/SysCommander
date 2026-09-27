@@ -3,6 +3,8 @@
 
 const GRAV = 0.35, MAXFALL = 7, WALK = 1.7, JUMP = 5.5, POGO_LOW = 5.0, POGO_HIGH = 7.6;
 const SHOT_SPEED = 5, START_LIVES = 3;
+// Crumbling bridge planks ('Z'): frames until a plank gives way, and until it grows back.
+const CRUMBLE_AFTER = 30, CRUMBLE_RESPAWN = 200;
 // Rollup conveyor lanes push whatever stands on them.
 const CONVEYOR = { '>': 0.8, '<': -0.8 };
 
@@ -13,6 +15,7 @@ const EDEF = {
   g: { w: 14, h: 14, hp: 2, score: 300, name: 'GAS GUZZLER' },
   w: { w: 30, h: 18, hp: 4, score: 800, name: 'WHALE', fly: true },
   x: { w: 12, h: 14, hp: 2, score: 400, name: 'FRAUD BOT' },
+  h: { w: 12, h: 16, hp: 2, score: 400, name: 'BRIDGE HACKER' },
   X: { w: 40, h: 40, hp: 14, score: 5000, name: '51% ATTACKER', fly: true, boss: true },
 };
 
@@ -107,7 +110,7 @@ function loadLevel(i) {
   L = {
     def, W: map[0].length, H: map.length, map, enemies: [], platforms: [], shots: [], eshots: [],
     particles: [], popups: [], signs: {}, keys: 0, locks: 0, locksTotal: 0, t: 0, toast: null,
-    sign: null, boss: null, cam: { x: 0, y: 0 }, start: null, checkpoint: null, shake: 0,
+    sign: null, boss: null, cam: { x: 0, y: 0 }, start: null, checkpoint: null, shake: 0, crumble: new Map(),
   };
   const signPos = [];
   for (let ty = 0; ty < L.H; ty++) {
@@ -163,7 +166,7 @@ function moveBody(b, oneway = true) {
     const ty = Math.floor((b.y + b.h - 0.01) / T);
     for (let tx = l; tx <= r; tx++) {
       const c = tileAt(tx, ty);
-      if (isSolid(c) || (oneway && c === '=' && prevBottom <= ty * T + 0.5)) {
+      if (isSolid(c) || (oneway && (c === '=' || c === 'Z') && prevBottom <= ty * T + 0.5)) {
         b.y = ty * T - b.h; b.vy = 0; res.ground = true; res.groundTile = c; break;
       }
     }
@@ -356,7 +359,7 @@ function openGate(tx, ty) {
 function groundAhead(e) {
   const fx = e.dir > 0 ? e.x + e.w + 1 : e.x - 1;
   const c = tileAt(Math.floor(fx / T), Math.floor((e.y + e.h + 2) / T));
-  return isSolid(c) || c === '=';
+  return isSolid(c) || c === '=' || c === 'Z';
 }
 function hazardAhead(e) {
   const fx = e.dir > 0 ? e.x + e.w + 1 : e.x - 1;
@@ -380,6 +383,17 @@ function updateEnemy(e) {
   const dx = pcx - ecx, dy = (p.y + p.h / 2) - (e.y + e.h / 2);
   switch (e.type) {
     case 'r': walker(e, 0.6); break;
+    case 'h': { // Bridge Hacker: lobs exploit packets at you
+      walker(e, 0.5);
+      if (e.t % 120 === 0 && Math.abs(dx) < 150 && Math.abs(dy) < 70 && !p.dead) {
+        e.dir = Math.sign(dx) || e.dir;
+        L.eshots.push({ kind: 'packet', x: ecx - 3, y: e.y + 2, vx: Math.max(-2.2, Math.min(2.2, dx / 55)), vy: -3.3, g: 0.12, w: 6, h: 6, life: 300 });
+        e.typing = 20;
+        SFX.bossShot();
+      }
+      if (e.typing > 0) e.typing--;
+      break;
+    }
     case 'x': { // Fraud Bot: poses as a SYS coin until you get close
       if (!e.awake) {
         e.vy = Math.min(MAXFALL, e.vy + GRAV);
@@ -492,6 +506,7 @@ function updateLevel() {
   updatePlayer();
   if (G.state !== 'play') return;
   const p = L.p;
+  updateCrumble(p);
 
   // only simulate enemies near the camera (like the classics)
   for (const e of L.enemies) {
@@ -526,7 +541,7 @@ function updateLevel() {
   for (const s of L.eshots) {
     s.vy += s.g; s.x += s.vx; s.y += s.vy; s.life--;
     if (isSolid(tileAt(Math.floor((s.x + s.w / 2) / T), Math.floor((s.y + s.h) / T)))) {
-      s.life = 0; burst(s.x + s.w / 2, s.y + s.h, s.kind === 'orb' ? '#ff3b3b' : '#dc2626', 5, 1); continue;
+      s.life = 0; burst(s.x + s.w / 2, s.y + s.h, s.kind === 'orb' ? '#ff3b3b' : s.kind === 'packet' ? '#39ff14' : '#dc2626', 5, 1); continue;
     }
     if (!p.dead && overlap(p, s, 1)) { s.life = 0; killPlayer(); }
   }
@@ -544,6 +559,28 @@ function updateLevel() {
   L.popups = L.popups.filter((q) => q.life > 0);
 
   updateCamera(false);
+}
+
+// Crumbling planks start shaking when stood on, drop away, and grow back later.
+function updateCrumble(p) {
+  if (!p.dead && p.onGround && p.groundTile === 'Z') {
+    const ty = Math.floor((p.y + p.h + 1) / T);
+    for (let tx = Math.floor(p.x / T); tx <= Math.floor((p.x + p.w - 0.01) / T); tx++) {
+      const k = tx + ',' + ty;
+      if (tileAt(tx, ty) === 'Z' && !L.crumble.has(k)) L.crumble.set(k, { tx, ty, t: 0 });
+    }
+  }
+  for (const [k, c] of L.crumble) {
+    c.t++;
+    if (c.t === CRUMBLE_AFTER) {
+      setTile(c.tx, c.ty, '.');
+      for (let i = 0; i < 6; i++) L.particles.push({ x: c.tx * T + i * 3, y: c.ty * T + 2, vx: (Math.random() - 0.5) * 0.6, vy: Math.random(), life: 50, c: '#8b5a2b', g: 0.2 });
+      SFX.hit();
+    } else if (c.t >= CRUMBLE_RESPAWN) {
+      const box = { x: c.tx * T, y: c.ty * T, w: T, h: T };
+      if (p.dead || !overlap(p, box)) { setTile(c.tx, c.ty, 'Z'); L.crumble.delete(k); }
+    }
+  }
 }
 
 function updateCamera(snap) {
@@ -647,7 +684,10 @@ function renderLevel() {
     for (let tx = tx0; tx <= tx1; tx++) {
       if (tx < 0 || tx >= L.W) continue;
       const c = L.map[ty][tx];
-      if (c !== '.') drawTile(c, tx, ty, tx * T - cx, ty * T - cy, th, G.t, ty > 0 ? L.map[ty - 1][tx] : '.');
+      if (c === '.') continue;
+      const cr = c === 'Z' && L.crumble.get(tx + ',' + ty);
+      const jig = cr ? Math.round(Math.sin(G.t * 1.7) * Math.min(2, cr.t / 10)) : 0;
+      drawTile(c, tx, ty, tx * T - cx + jig, ty * T - cy, th, G.t, ty > 0 ? L.map[ty - 1][tx] : '.');
     }
   }
   for (const pl of L.platforms) drawPlatform(pl, Math.round(pl.x - cx), Math.round(pl.y - cy));
@@ -665,7 +705,13 @@ function renderLevel() {
   }
   for (const s of L.eshots) {
     const sx = Math.round(s.x - cx), sy = Math.round(s.y - cy);
-    if (s.kind === 'orb') {
+    if (s.kind === 'packet') {
+      R(sx - 1, sy - 1, 8, 8, 'rgba(57,255,20,0.3)');
+      R(sx, sy, 6, 6, '#0b3d0b');
+      R(sx + 1, sy + 1, 1, 1, '#39ff14'); R(sx + 3, sy + 1, 2, 1, '#39ff14');
+      R(sx + 1, sy + 3, 2, 1, '#39ff14'); R(sx + 4, sy + 3, 1, 1, '#39ff14');
+      R(sx + 2, sy + 4, 2, 1, (G.t >> 2) & 1 ? '#39ff14' : '#0b3d0b');
+    } else if (s.kind === 'orb') {
       ellipse(sx + 3, sy + 3, 4, 4, 'rgba(255,59,59,0.35)');
       ellipse(sx + 3, sy + 3, 3, 3, '#ff3b3b');
       R(sx + 2, sy + 1, 2, 2, '#ffd0d0');
@@ -789,7 +835,7 @@ function renderGameOver() {
 
 const EPILOGUE = [
   'The 51% Attacker is defeated and the chain stands firm.',
-  'From genesis through flash crashes, frozen winters, gas wars and rollups, SysCommander never gave up.',
+  'From genesis through flash crashes, frozen winters, bridges, gas wars and rollups, SysCommander never gave up.',
   'Bitcoin-grade security. EVM power. A community that keeps building.',
   'THE END ... FOR NOW.',
 ];

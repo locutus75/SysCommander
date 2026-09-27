@@ -36,7 +36,7 @@ function check(def, idx) {
     else if (b.vx < 0) { const tx = Math.floor(b.x / T); for (let ty = top; ty <= bot; ty++) if (solid(tile(tx, ty), gates)) { b.x = (tx + 1) * T; break; } }
     const pb = b.y + PH; b.y += b.vy;
     const l = Math.floor(b.x / T), r = Math.floor((b.x + PW - 0.01) / T);
-    if (b.vy > 0) { const ty = Math.floor((b.y + PH - 0.01) / T); for (let tx = l; tx <= r; tx++) { const c = tile(tx, ty); if (solid(c, gates) || (c === '=' && pb <= ty * T + 0.5)) { b.y = ty * T - PH; b.vy = 0; b.gt = c; return true; } } }
+    if (b.vy > 0) { const ty = Math.floor((b.y + PH - 0.01) / T); for (let tx = l; tx <= r; tx++) { const c = tile(tx, ty); if (solid(c, gates) || ((c === '=' || c === 'Z') && pb <= ty * T + 0.5)) { b.y = ty * T - PH; b.vy = 0; b.gt = c; return true; } } }
     else if (b.vy < 0) { const ty = Math.floor(b.y / T); for (let tx = l; tx <= r; tx++) if (solid(tile(tx, ty), gates)) { b.y = (ty + 1) * T; b.vy = 0; break; } }
     return false;
   }

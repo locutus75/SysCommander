@@ -16,6 +16,7 @@ const THEMES = {
   genesis: { coin: 'v1', sky: ['#070b1e', '#1a2b5e'], ground: '#6b4a2b', speck: '#4e341d', top: '#3fae4a', topDark: '#2b7a33', plat: '#c08a50', platDark: '#7a5230', spike: '#cfd6e6', door: '#1f5eff' },
   exchange: { coin: 'v1', sky: ['#030a07', '#0d2a1d'], ground: '#2a303c', speck: '#1b1f27', top: '#5b6b85', topDark: '#3a465a', plat: '#8a95a8', platDark: '#4b5566', spike: '#ef4444', door: '#16a34a' },
   winter: { coin: 'v2', sky: ['#7fb8ea', '#dff0ff'], ground: '#56677d', speck: '#3e4b5c', top: '#ffffff', topDark: '#c7def0', plat: '#9fb6cc', platDark: '#6c8199', spike: '#d8f1ff', door: '#0ea5e9' },
+  bridge: { coin: 'v2', sky: ['#2a1b4d', '#f2945f'], ground: '#6b6f7a', speck: '#4f535c', top: '#a3a9b4', topDark: '#737985', plat: '#8b5a2b', platDark: '#5a3a1a', spike: '#e0e6f0', door: '#1f5eff' },
   gas: { coin: 'v2', sky: ['#140a24', '#43204f'], ground: '#4b3a2c', speck: '#33261c', top: '#7c7f86', topDark: '#55585e', plat: '#a0845c', platDark: '#6b5535', spike: '#ff9f1c', door: '#8b5cf6' },
   rollux: { coin: 'v3', sky: ['#04061a', '#150a33'], ground: '#141a3a', speck: '#0b1030', top: '#00e5ff', topDark: '#0091a8', plat: '#3b4a78', platDark: '#222c50', spike: '#ff2bd6', door: '#00c2d6' },
   siege: { coin: 'v3', sky: ['#0d0203', '#3a0909'], ground: '#2d2b3a', speck: '#1d1b27', top: '#a3a3b8', topDark: '#6b6b80', plat: '#6b6b80', platDark: '#3f3f50', spike: '#ff3b3b', door: '#1f5eff' },
@@ -147,6 +148,36 @@ function drawBackground(themeName, camX, camY, t) {
       const x = Math.round(mod((h % VW) - camX * sp * 0.6 + Math.sin(t * 0.02 + i) * 6, VW));
       const y = Math.round(mod(((h >>> 9) % VH) + t * sp, VH));
       R(x, y, i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1, '#ffffff');
+    }
+  } else if (themeName === 'bridge') {
+    // low sun over the river
+    ellipse(230 - Math.round(camX * 0.02), 132, 26, 26, '#ffcf7a');
+    ellipse(230 - Math.round(camX * 0.02), 132, 22, 22, '#ffe2a6');
+    // distant suspension bridge: towers, deck and sagging cables
+    const par = 0.2, span = 220;
+    const k0 = Math.floor((camX * par) / span) - 1;
+    for (let k = k0; k < k0 + VW / span + 3; k++) {
+      const x = Math.round(k * span - camX * par);
+      R(x, 70, 8, 80, '#3b2a55'); R(x - 2, 66, 12, 5, '#3b2a55'); R(x + 2, 90, 4, 8, '#f2945f');
+      for (let i = 0; i <= span; i += 2) {
+        const sag = Math.round(46 * (1 - Math.pow((i - span / 2) / (span / 2), 2)));
+        R(x + 4 + i, 70 + sag, 2, 1, '#4a3566');
+        if (i % 14 === 0) R(x + 4 + i, 70 + sag, 1, 118 - 70 - sag, '#4a3566');
+      }
+      // relay lights racing along the cable: SYS one way, ETH the other
+      const f = mod(t * 0.004 + k * 0.37, 1), g = 1 - f;
+      for (const [q, col] of [[f, '#7dd3fc'], [g, '#b39cff']]) {
+        const i = Math.round(q * span);
+        R(x + 3 + i, 69 + Math.round(46 * (1 - Math.pow((i - span / 2) / (span / 2), 2))), 3, 3, col);
+      }
+    }
+    R(0, 118, VW, 3, '#3b2a55');
+    // water
+    R(0, 150, VW, VH - 150, '#2b3f73');
+    for (let i = 0; i < 40; i++) {
+      const h = hash(i * 17 + 3);
+      const x = Math.round(mod((h % 400) - camX * 0.6 + Math.sin(t * 0.03 + i) * 3, 400));
+      if (x < VW) R(x, 154 + (h >>> 9) % 44, 6 + (h % 8), 1, (h & 1) ? '#f2945f' : '#5b74b0');
     }
   } else if (themeName === 'gas') {
     const par = 0.3, bw = 60;
@@ -336,6 +367,14 @@ function drawTile(c, tx, ty, sx, sy, th, t, above) {
       R(sx + (h % 12) + 2, sy + 9 + ((h >>> 5) % 5), 2, 2, th.speck);
       break;
     }
+    case 'Z': // cracked bridge plank - crumbles when stood on
+      R(sx, sy, T, 5, '#7a4a22');
+      R(sx, sy + 5, T, 1, '#4a2a10');
+      R(sx, sy, T, 1, 'rgba(255,255,255,0.2)');
+      R(sx + 4, sy + 1, 1, 2, '#3a1f0a'); R(sx + 5, sy + 3, 1, 2, '#3a1f0a');
+      R(sx + 10, sy, 1, 2, '#3a1f0a'); R(sx + 11, sy + 2, 1, 1, '#3a1f0a'); R(sx + 12, sy + 3, 1, 2, '#3a1f0a');
+      R(sx + 7, sy + 5, 2, 2, '#4a2a10');
+      break;
     case '=':
       R(sx, sy, T, 5, th.plat);
       R(sx, sy + 5, T, 1, th.platDark);
@@ -575,6 +614,17 @@ function drawEnemy(e, sx, sy, t) {
       FLASH = false;
       text('$', sx + (flip ? 14 : 10), sy + 4, '#ffd400');
       if (e.spout > 0) { R(sx + 16, sy - 6, 2, 5, '#7dd3fc'); R(sx + 13, sy - 8, 3, 2, '#7dd3fc'); R(sx + 18, sy - 8, 3, 2, '#7dd3fc'); }
+      break;
+    }
+    case 'h': { // Bridge Hacker
+      const r = S(sx - 2, sy, 16, flip);
+      r(4, 0, 8, 2, '#1a1a1a'); r(3, 2, 10, 6, '#1a1a1a');
+      r(5, 3, 6, 4, '#0a0a0a');
+      r(8, 4, 2, 1, '#39ff14'); r(6, 4, 1, 1, '#39ff14');
+      r(3, 8, 10, 6, '#262626'); r(7, 8, 2, 5, '#111');
+      const glow = e.typing > 0 && ((t >> 1) & 1) ? '#b6ff9e' : '#39ff14';
+      r(9, 9, 6, 4, '#555'); r(10, 9, 4, 3, glow); r(8, 13, 8, 1, '#777');
+      r(4 + f, 14, 3, 2, '#111'); r(9 - f, 14, 3, 2, '#111');
       break;
     }
     case 'x': { // Fraud Bot
