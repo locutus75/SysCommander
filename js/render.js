@@ -13,12 +13,12 @@ const C = {
 };
 
 const THEMES = {
-  genesis: { sky: ['#070b1e', '#1a2b5e'], ground: '#6b4a2b', speck: '#4e341d', top: '#3fae4a', topDark: '#2b7a33', plat: '#c08a50', platDark: '#7a5230', spike: '#cfd6e6', door: '#1f5eff' },
-  exchange: { sky: ['#030a07', '#0d2a1d'], ground: '#2a303c', speck: '#1b1f27', top: '#5b6b85', topDark: '#3a465a', plat: '#8a95a8', platDark: '#4b5566', spike: '#ef4444', door: '#16a34a' },
-  winter: { sky: ['#7fb8ea', '#dff0ff'], ground: '#56677d', speck: '#3e4b5c', top: '#ffffff', topDark: '#c7def0', plat: '#9fb6cc', platDark: '#6c8199', spike: '#d8f1ff', door: '#0ea5e9' },
-  gas: { sky: ['#140a24', '#43204f'], ground: '#4b3a2c', speck: '#33261c', top: '#7c7f86', topDark: '#55585e', plat: '#a0845c', platDark: '#6b5535', spike: '#ff9f1c', door: '#8b5cf6' },
-  rollux: { sky: ['#04061a', '#150a33'], ground: '#141a3a', speck: '#0b1030', top: '#00e5ff', topDark: '#0091a8', plat: '#3b4a78', platDark: '#222c50', spike: '#ff2bd6', door: '#00c2d6' },
-  siege: { sky: ['#0d0203', '#3a0909'], ground: '#2d2b3a', speck: '#1d1b27', top: '#a3a3b8', topDark: '#6b6b80', plat: '#6b6b80', platDark: '#3f3f50', spike: '#ff3b3b', door: '#1f5eff' },
+  genesis: { coin: 'v1', sky: ['#070b1e', '#1a2b5e'], ground: '#6b4a2b', speck: '#4e341d', top: '#3fae4a', topDark: '#2b7a33', plat: '#c08a50', platDark: '#7a5230', spike: '#cfd6e6', door: '#1f5eff' },
+  exchange: { coin: 'v1', sky: ['#030a07', '#0d2a1d'], ground: '#2a303c', speck: '#1b1f27', top: '#5b6b85', topDark: '#3a465a', plat: '#8a95a8', platDark: '#4b5566', spike: '#ef4444', door: '#16a34a' },
+  winter: { coin: 'v2', sky: ['#7fb8ea', '#dff0ff'], ground: '#56677d', speck: '#3e4b5c', top: '#ffffff', topDark: '#c7def0', plat: '#9fb6cc', platDark: '#6c8199', spike: '#d8f1ff', door: '#0ea5e9' },
+  gas: { coin: 'v2', sky: ['#140a24', '#43204f'], ground: '#4b3a2c', speck: '#33261c', top: '#7c7f86', topDark: '#55585e', plat: '#a0845c', platDark: '#6b5535', spike: '#ff9f1c', door: '#8b5cf6' },
+  rollux: { coin: 'v3', sky: ['#04061a', '#150a33'], ground: '#141a3a', speck: '#0b1030', top: '#00e5ff', topDark: '#0091a8', plat: '#3b4a78', platDark: '#222c50', spike: '#ff2bd6', door: '#00c2d6' },
+  siege: { coin: 'v3', sky: ['#0d0203', '#3a0909'], ground: '#2d2b3a', speck: '#1d1b27', top: '#a3a3b8', topDark: '#6b6b80', plat: '#6b6b80', platDark: '#3f3f50', spike: '#ff3b3b', door: '#1f5eff' },
 };
 
 let FLASH = false; // draw everything white (enemy hit flash)
@@ -233,6 +233,56 @@ function drawBackground(themeName, camX, camY, t) {
   }
 }
 
+// ---------- SYS coins ----------
+// The Syscoin logo changed over the years, so each era has its own coin (15x15 pixel art):
+//   v1: the original 2014 coin - "SYS" in circuit-style letters with a keyhole
+//   v2: the swoosh "S" logo, in several shades of blue, on a white coin
+//   v3: the flat single-colour S coin in today's brand blue (#008dd0)
+const COIN_S = [ // S silhouette traced from the S cut out of the wallet's coin logo
+  '...............', '...............', '.......SS......', '....SSSSSSS....',
+  '...SSS.........', '..SSS..SSSS....', '..SSS..SSSSS...', '..SSSS...SSSS..',
+  '...SSSSS..SSS..', '....SSSS..SSS..', '.........SSS...', '....SSSSSSS....',
+  '......SS.......', '...............', '...............',
+];
+const coinDisc = (x, y) => (x - 7) ** 2 + (y - 7) ** 2 <= 7.5 * 7.5;
+const coinRim = (x, y) => coinDisc(x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => !coinDisc(x + a, y + b));
+function coinFromS(pick) {
+  return COIN_S.map((row, y) => [...row].map((c, x) => !coinDisc(x, y) ? '.' : coinRim(x, y) ? 'r' : pick(c === 'S', x, y)).join(''));
+}
+// The upper stroke of the swoosh is light blue, the lower stroke darker, like the logo's gradient.
+const upperStroke = (x, y) => y <= 4 || x <= 6 || (y <= 9 && y >= 8 && x <= 7);
+const COINS = {
+  v1: {
+    pal: { D: '#0b6fa8', b: '#1b9ad7', W: '#ffffff' },
+    rows: [
+      '.....DDDDD.....', '...DDWWWWWDD...', '..DWbbbWbbbWD..', '.DWbbbbWbbbbWD.',
+      '.DWbbbWbWbbbWD.', 'DbWWWbWbWbWWWbD', 'DbWbbbWbWbWbbbD', 'DbWWWbbWbbWWWbD',
+      'DbbbWbbWbbbbWbD', 'DbWWWbbWbbWWWbD', '.DWbWbWbWbWbWD.', '.DWbbbbbbbbbWD.',
+      '..DWbbbbbbbWD..', '...DDWWWWWDD...', '.....DDDDD.....',
+    ],
+  },
+  v2: {
+    pal: { r: '#1f6fb8', w: '#f4f9ff', c: '#3bb3e6', m: '#0a8fd6', k: '#1f5fa8' },
+    rows: coinFromS((s, x, y) => !s ? 'w' : upperStroke(x, y) ? (COIN_S[y][x - 1] !== 'S' ? 'm' : 'c') : (COIN_S[y][x + 1] !== 'S' ? 'm' : 'k')),
+  },
+  v3: {
+    pal: { r: '#006a9e', b: '#008dd0', w: '#ffffff' },
+    rows: coinFromS((s) => (s ? 'w' : 'b')),
+  },
+};
+// Draw a coin centred on (cx, cy); spin (0..1) squeezes it horizontally to fake a turn.
+function drawCoin(style, cx, cy, spin) {
+  const coin = COINS[style];
+  if (spin <= 0) { R(cx - 1, cy - 7, 2, 15, coin.pal.r || coin.pal.D); R(cx, cy - 6, 1, 13, '#ffffff'); return; }
+  const hw = Math.max(1, Math.round(7 * spin));
+  for (let y = 0; y < 15; y++) {
+    for (let dx = -hw; dx <= hw; dx++) {
+      const c = coin.rows[y][Math.max(0, Math.min(14, Math.round(7 + dx / spin)))];
+      if (c !== '.') R(cx + dx, cy - 7 + y, 1, 1, coin.pal[c]);
+    }
+  }
+}
+
 // ---------- tiles ----------
 const isSolidChar = (c) => c === '#' || c === '~' || c === 'G' || c === 'R' || c === 'D' || c === '>' || c === '<';
 
@@ -301,18 +351,9 @@ function drawTile(c, tx, ty, sx, sy, th, t, above) {
         R(bx + 2, sy + 11, 1, 5, 'rgba(0,0,0,0.25)');
       }
       break;
-    case 'o': {
-      const ph = ((t >> 3) + tx) % 6;
-      const rx = [6, 5, 3, 1, 3, 5][ph];
-      const cx = sx + 8, cy = sy + 8 + bob;
-      ellipse(cx, cy, rx, 6, C.blueDark);
-      if (rx > 2) {
-        ellipse(cx, cy, rx - 1, 5, C.blue);
-        R(cx - 1, cy - 3, 2, 6, '#ffffff');
-        if (rx > 4) { R(cx - 2, cy - 3, 4, 1, '#ffffff'); R(cx - 2, cy + 2, 4, 1, '#ffffff'); }
-      }
+    case 'o':
+      drawCoin(th.coin || 'v3', sx + 8, sy + 8 + bob, [1, 0.72, 0.4, 0, 0.4, 0.72][((t >> 3) + tx) % 6]);
       break;
-    }
     case 'b': {
       const cx = sx + 8, cy = sy + 8 + bob;
       ellipse(cx, cy, 7, 7, '#b85f00');
@@ -589,6 +630,5 @@ function drawPlatform(pl, sx, sy) {
 // small icons for HUD / intro
 function iconHelmet(x, y) { ellipse(x + 5, y + 4, 5, 4, C.white); R(x + 4, y, 2, 8, C.blue); R(x + 9, y + 6, 3, 1, C.white); }
 function iconBolt(x, y) { R(x + 2, y, 6, 8, '#ffd400'); R(x + 5, y + 1, 2, 2, '#1a1a1a'); R(x + 3, y + 3, 4, 1, '#1a1a1a'); R(x + 3, y + 4, 2, 2, '#1a1a1a'); }
-function iconCoin(x, y) { ellipse(x + 4, y + 4, 4, 4, C.blueDark); ellipse(x + 4, y + 4, 3, 3, C.blue); R(x + 4, y + 1, 1, 6, '#fff'); }
 function iconKey(x, y) { [2, 4, 6, 8, 6, 4, 2].forEach((w, i) => R(x + 4 - w / 2, y + i, w, 1, i < 3 ? '#67e8f9' : '#0891b2')); }
 function iconLock(x, y, on) { R(x + 2, y, 5, 2, '#b5b9c4'); R(x + 1, y + 1, 2, 3, '#b5b9c4'); R(x + 6, y + 1, 2, 3, '#b5b9c4'); R(x, y + 4, 9, 5, on ? C.gold : '#555'); }

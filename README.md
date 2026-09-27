@@ -34,6 +34,8 @@ Touch devices get on-screen buttons.
 ## Pickups
 
 - Blue **SYS coins** (100) and orange **BTC merge-mining orbs** (500). Collect every coin in an era for a bonus.
+  The SYS coins follow the Syscoin logo through the years: the original circuit-style "SYS" coin (Eras I-II),
+  the swoosh "S" (Eras III-IV) and the flat S coin in today's brand blue (Eras V-VI).
 - **Z-DAG cells** give 5 more blaster shots.
 - **Keygems** open red force-field gates.
 - **1UP** helmets. You also get an extra life every 20,000 points.
