@@ -26,16 +26,17 @@ Touch devices get on-screen buttons.
 
 1. **Genesis Block (2014)**: Syscoin launches, merge-mined with Bitcoin. Watch out for Rug Pullers and FUD Ghosts. Find the pogo stick.
 2. **The Flash Crash (2018)**: the day SYS briefly traded at 96 BTC on a major exchange. Ride the moving price candles and dodge the whales dumping red candles on you.
-3. **Crypto Winter (2018/19)**: slippery ice and charging Bear Markets, while the builders keep shipping (Z-DAG, the SYS-Ethereum bridge).
-4. **The Gas Wars (2021)**: gas guzzlers everywhere. Reach the NEVM.
-5. **Rollux Rising (2023)**: Layer 2! Ride the rollup conveyor lanes, and don't trust every coin: Fraud Bots disguise themselves as SYS coins until you get close.
-6. **The 51% Siege**: boss fight. Collect all 4 Chainlocks to break the 51% Attacker's shield, then blast it.
+3. **Crypto Winter (2018/19)**: slippery ice and charging Bear Markets, while the builders keep shipping.
+4. **The Bridge (2019/20)**: cross the river on the bridge to Ethereum. Cracked planks crumble under your feet, and Bridge Hackers lob exploit packets at you.
+5. **The Gas Wars (2021)**: gas guzzlers everywhere. Reach the NEVM.
+6. **Rollux Rising (2023)**: Layer 2! Ride the rollup conveyor lanes, and don't trust every coin: Fraud Bots disguise themselves as SYS coins until you get close.
+7. **The 51% Siege**: boss fight. Collect all 4 Chainlocks to break the 51% Attacker's shield, then blast it.
 
 ## Pickups
 
 - Blue **SYS coins** (100) and orange **BTC merge-mining orbs** (500). Collect every coin in an era for a bonus.
   The SYS coins follow the Syscoin logo through the years: the original circuit-style "SYS" coin (Eras I-II),
-  the swoosh "S" (Eras III-IV) and the flat S coin in today's brand blue (Eras V-VI).
+  the swoosh "S" (Eras III-V) and the flat S coin in today's brand blue (Eras VI-VII).
 - **Z-DAG cells** give 5 more blaster shots.
 - **Keygems** open red force-field gates.
 - **1UP** helmets. You also get an extra life every 20,000 points.

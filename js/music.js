@@ -60,6 +60,19 @@ const Music = (() => {
         ['C', 'E5 . - . - . - . - . . . . . . .'],
       ],
     },
+    bridge: {
+      bpm: 144, bass: 'octave', arp: true, drums: 'rock',
+      bars: [
+        ['G', 'G5 . B5 . D6 . - . B5 . D6 . G6 . - .'],
+        ['D', 'F#6 . - . D6 . A5 . F#5 . A5 . D6 . - .'],
+        ['Em', 'E6 . - . B5 . G5 . E5 . G5 . B5 . E6 .'],
+        ['C', 'C6 . - . G5 . E5 . G5 . - . A5 . B5 .'],
+        ['G', 'D6 . . D6 B5 . G5 . D6 . E6 . D6 . B5 .'],
+        ['D', 'A5 . . A5 F#5 . D5 . A5 . B5 . A5 . F#5 .'],
+        ['Em', 'G5 . B5 . E6 . G6 . F#6 . E6 . D6 . B5 .'],
+        ['C', 'C6 . E6 . D6 . - . - . . . . . . .'],
+      ],
+    },
     gas: {
       bpm: 150, bass: 'drive', arp: false, drums: 'rock',
       bars: [
