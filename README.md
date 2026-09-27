@@ -53,7 +53,7 @@ Touch devices get on-screen buttons.
   arpeggios, noise drums) with a tune for the title, each era, victory and game over. Tracks are
   written as chords plus 16-step note lines, so they're easy to edit.
 
-Debug URL parameters: `?level=5` starts at era 5, and `?god` makes you invincible.
+Debug URL parameter: `?level=5` starts at era 5.
 
 After editing a level, run the reachability checker. It simulates the player's jump and pogo physics
 and verifies that every keygem, chainlock and exit can be reached:

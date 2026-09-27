@@ -22,10 +22,11 @@ const EDEF = {
 // ---------- persistent game state ----------
 const G = {
   state: 'title', levelIndex: 0, score: 0, lives: START_LIVES, ammo: 10, hasPogo: false,
-  t: 0, stateT: 0, hiscore: 0, nextLifeAt: 20000, tally: null, cheat: false,
+  t: 0, stateT: 0, hiscore: 0, nextLifeAt: 20000, tally: null, cheat: false, cheatUsed: false,
 };
 try { G.hiscore = parseInt(localStorage.getItem('syscommander.hiscore'), 10) || 0; } catch (e) { /* storage unavailable */ }
 function saveHiscore() {
+  if (G.cheatUsed) return; // cheated games don't count
   if (G.score > G.hiscore) {
     G.hiscore = G.score;
     try { localStorage.setItem('syscommander.hiscore', String(G.hiscore)); } catch (e) { /* ignore */ }
@@ -46,7 +47,41 @@ const KEYMAP = {
 };
 function press(a) { if (!keys[a]) pressed[a] = true; keys[a] = true; }
 function release(a) { keys[a] = false; }
+// ---------- secret code ----------
+// The code itself is not stored anywhere: only a salted, deliberately slow hash of it.
+// Every key press hashes the last few typed characters and compares.
+const SECRET = { salt: 'SysCommander/v1:', len: 5, hash: 'a9441763c8ef62a761a347b8aa0c6c2d' };
+let typed = '';
+function slowHash(s) {
+  let a = 0x9e3779b9 | 0, b = 0x85ebca6b | 0, c = 0xc2b2ae35 | 0, d = 0x27d4eb2f | 0;
+  for (let r = 0; r < 3000; r++) {
+    for (let i = 0; i < s.length; i++) {
+      const k = s.charCodeAt(i) ^ r;
+      a = Math.imul(a ^ k, 0x01000193);
+      b = Math.imul(b ^ (a >>> 7), 0x5bd1e995);
+      c = Math.imul(c ^ (b >>> 11), 0x27d4eb2d);
+      d = Math.imul(d ^ (c >>> 13), 0x165667b1);
+      a ^= d >>> 5;
+    }
+  }
+  return [a, b, c, d].map((x) => (x >>> 0).toString(16).padStart(8, '0')).join('');
+}
+function checkSecret(key) {
+  if (key.length !== 1) return;
+  typed = (typed + key.toLowerCase()).slice(-SECRET.len);
+  if (typed.length === SECRET.len && slowHash(SECRET.salt + typed) === SECRET.hash) {
+    typed = '';
+    toggleCheat();
+  }
+}
+function toggleCheat() {
+  G.cheat = !G.cheat;
+  if (G.cheat) { G.cheatUsed = true; SFX.oneup(); } else SFX.shieldDown();
+  if (L && G.state === 'play') toast(G.cheat ? 'CHEAT MODE ON - HIGH SCORE DISABLED' : 'CHEAT MODE OFF', 150);
+}
+
 window.addEventListener('keydown', (e) => {
+  if (!e.repeat) checkSecret(e.key);
   const a = KEYMAP[e.code];
   if (!a) return;
   e.preventDefault();
@@ -230,7 +265,7 @@ function updatePlayer() {
   else if (p.vx > target) p.vx = Math.max(target, p.vx - accel);
 
   if (pressed.pogo) {
-    if (G.hasPogo) { p.pogo = !p.pogo; SFX.pogo(); }
+    if (G.hasPogo || G.cheat) { p.pogo = !p.pogo; SFX.pogo(); }
     else toast('NO POGO STICK YET!', 90);
   }
 
@@ -273,8 +308,8 @@ function updatePlayer() {
 
   // shooting
   if (pressed.fire && p.shootCd <= 0) {
-    if (G.ammo > 0) {
-      G.ammo--;
+    if (G.ammo > 0 || G.cheat) {
+      if (!G.cheat) G.ammo--;
       L.shots.push({ x: p.facing > 0 ? p.x + p.w : p.x - 8, y: p.y + (p.pogo ? 4 : 10), vx: SHOT_SPEED * p.facing, life: 70, w: 8, h: 3 });
       p.shootCd = 12; p.shootAnim = 10;
       SFX.shoot();
@@ -285,7 +320,10 @@ function updatePlayer() {
     }
   }
 
-  if (p.y > L.H * T + 40) { p.invuln = 0; killPlayer(); return; }
+  if (p.y > L.H * T + 40) {
+    if (G.cheat) { p.x = L.checkpoint.x; p.y = L.checkpoint.y; p.vx = 0; p.vy = 0; p.pogo = false; return; }
+    p.invuln = 0; killPlayer(); return;
+  }
   touchTiles(p);
 }
 
@@ -608,6 +646,7 @@ function completeLevel() {
 function setState(s) { G.state = s; G.stateT = 0; }
 function newGame(level = 0) {
   G.score = 0; G.lives = START_LIVES; G.ammo = 10; G.hasPogo = false; G.nextLifeAt = 20000;
+  G.cheatUsed = G.cheat;
   G.levelIndex = level;
   loadLevel(level);
   setState('intro');
@@ -642,6 +681,7 @@ function update() {
       if (G.stateT > 60 && go) {
         // continue from the start of this era, but the score resets
         G.score = 0; G.lives = START_LIVES; G.nextLifeAt = 20000;
+        G.cheatUsed = G.cheat;
         loadLevel(G.levelIndex);
         setState('intro');
       }
@@ -739,7 +779,7 @@ function drawHUD() {
   text('SCORE', 3, 3, '#7aa5ff');
   text(String(G.score).padStart(7, '0'), 44, 3, '#ffffff');
   iconHelmet(106, 2); text(String(Math.max(0, G.lives)), 120, 3);
-  iconBolt(140, 2); text(String(G.ammo), 152, 3);
+  iconBolt(140, 2); text(G.cheat ? '99' : String(G.ammo), 152, 3, G.cheat ? '#ff2bd6' : '#ffffff');
   if (G.hasPogo) { R(180, 2, 2, 9, '#c9ced8'); R(177, 3, 8, 1, '#777'); text(L.p.pogo ? 'ON' : '', 188, 3, '#7dd3fc'); }
   if (L.keys) { iconKey(212, 3); text(String(L.keys), 224, 3); }
   if (L.locksTotal) {
@@ -747,6 +787,7 @@ function drawHUD() {
   } else {
     text(L.def.era.split(' - ')[0], VW - 3, 3, '#7aa5ff', 'right');
   }
+  if (G.cheat && (G.t >> 5) & 1) textS('CHEAT', 3, VH - 11, '#ff2bd6');
   const b = L.boss;
   if (b && !b.dead) {
     panel(80, 186, 160, 12, 'rgba(20,0,0,0.9)', '#ff3b3b');
@@ -879,7 +920,6 @@ function render() {
 // ---------- boot ----------
 const params = new URLSearchParams(location.search);
 const startLevel = Math.max(0, Math.min(LEVELS.length - 1, (parseInt(params.get('level'), 10) || 1) - 1));
-G.cheat = params.has('god');
 
 let last = performance.now(), acc = 0;
 const STEP = 1000 / 60;
