@@ -86,6 +86,32 @@ const Music = (() => {
         ['B', 'D#6 . - . B5 . - . F#5 . - . D#5 . . .'],
       ],
     },
+    pools: {
+      bpm: 112, bass: 'half', arp: true, drums: 'soft', lead: 'triangle',
+      bars: [
+        ['F', 'A5 . - . C6 . - . A5 . G5 . F5 . - .'],
+        ['C', 'E5 . - . G5 . - . C6 . - . - . . .'],
+        ['Dm', 'F5 . - . A5 . D6 . - . C6 . A5 . - .'],
+        ['Bb', 'D5 . F5 . Bb5 . - . A5 . - . G5 . - .'],
+        ['F', 'C6 . - . A5 . F5 . A5 . C6 . F6 . - .'],
+        ['C', 'E6 . - . D6 . C6 . - . G5 . - . - .'],
+        ['Dm', 'D6 . - . A5 . F5 . - . E5 . D5 . - .'],
+        ['Bb', 'F5 . - . - . - . - . . . . . . .'],
+      ],
+    },
+    contagion: {
+      bpm: 172, bass: 'boss', arp: true, drums: 'fast',
+      bars: [
+        ['Em', 'E5 E5 . E5 G5 . E5 . B5 . A5 . G5 . F#5 .'],
+        ['C', 'E5 E5 . E5 G5 . E5 . C6 . B5 . A5 . G5 .'],
+        ['D', 'F#5 F#5 . F#5 A5 . F#5 . D6 . C6 . B5 . A5 .'],
+        ['B', 'D#5 . F#5 . B5 . D#6 . F#6 . D#6 . B5 . F#5 .'],
+        ['Em', 'B5 . - . G6 . - . F#6 . E6 . - . B5 .'],
+        ['C', 'C6 . - . E6 . G6 . - . F#6 . E6 . C6 .'],
+        ['D', 'D6 . - . F#6 . A6 . - . G6 . F#6 . D6 .'],
+        ['B', 'D#6 . F#6 . B6 . - . A6 . F#6 . D#6 . B5 .'],
+      ],
+    },
     rollux: {
       bpm: 128, bass: 'octave', arp: true, drums: 'rock',
       bars: [

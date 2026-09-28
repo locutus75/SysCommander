@@ -45,39 +45,61 @@ function check(def, idx) {
     let deadly = false;
     for (let ty = y1; ty <= y2; ty++) for (let tx = x1; tx <= x2; tx++) {
       const c = tile(tx, ty);
-      if (c === '^' && b.y + PH > ty * T + 8) deadly = true;
+      if (c === '^' && b.y + PH > ty * T + 11 && b.x + PW - 2 > tx * T && b.x + 2 < tx * T + T) deadly = true;
       if ('kpLEb1o'.includes(c)) set.add(c + tx + ',' + ty);
     }
     return deadly;
   }
+  // Water is a separate layer (def.map.water); swimming follows the SWIM rules in js/game.js.
+  const wetRows = def.map.water || null;
+  const wet = (px, py) => {
+    if (!wetRows) return false;
+    const tx = Math.floor(px / T), ty = Math.floor(py / T);
+    return !!(wetRows[ty] && wetRows[ty][tx] === 'W');
+  };
+  const SWIM = { grav: 0.08, maxSink: 1.1, stroke: -2.6, speed: 1.2, leap: -5.4 };
   function explore(gates, pogo) {
     const seen = new Set(), got = new Set(), q = [{ x: start.x, y: start.y }];
-    const key = (s) => Math.round(s.x / 2) + ',' + Math.round(s.y);
+    const key = (s) => Math.round(s.x / 2) + ',' + Math.round(s.y) + (s.swim ? 'w' : '');
     seen.add(key(q[0]));
     const actions = [];
     for (const dir of [-1, 0, 1]) {
       actions.push({ dir, vy: 0, walk: true });
       actions.push({ dir, vy: -JUMP, cut: false }, { dir, vy: -JUMP, cut: true });
       if (pogo) actions.push({ dir, vy: -POGO_HIGH }, { dir, vy: -POGO_LOW });
+      if (wetRows) actions.push({ dir, vy: 0, stroke: true }, { dir, vy: 0, sink: true });
     }
     while (q.length) {
       const s = q.shift();
+      const startWet = wet(s.x + PW / 2, s.y + PH / 2);
       for (const a of actions) {
-        const b = { x: s.x, y: s.y, vx: a.dir * WALK, vy: a.vy, gt: s.gt };
-        let landed = false, dead = false;
+        // in water a jump press is a swim stroke; strokes and sinking only make sense in water
+        if (startWet && a.vy < 0) continue;
+        if (!startWet && (a.stroke || a.sink)) continue;
+        if (s.swim && a.walk) continue;
+        const b = { x: s.x, y: s.y, vx: a.dir * WALK, vy: s.swim ? s.vy || 0 : a.vy, gt: s.gt };
+        let landed = false, dead = false, swimState = false, leapT = 0, wetFrames = 0;
         for (let f = 0; f < 240; f++) {
+          const inW = wet(b.x + PW / 2, b.y + PH / 2);
+          if (leapT > 0) leapT--;
+          if (inW && a.stroke && f % 14 === 0) {
+            if (!wet(b.x + PW / 2, b.y - 4)) { b.vy = SWIM.leap; leapT = 20; } else b.vy = Math.max(SWIM.stroke, b.vy + SWIM.stroke);
+          }
           if (a.cut && b.vy < -2) b.vy = -2;
-          b.vy = Math.min(MAXFALL, b.vy + GRAV);
+          if (inW && leapT <= 0) b.vy = Math.max(SWIM.stroke, Math.min(SWIM.maxSink, b.vy + SWIM.grav));
+          else b.vy = Math.min(MAXFALL, b.vy + (inW ? SWIM.grav : GRAV));
           const carry = a.walk ? CONVEYOR[b.gt] || 0 : 0;
-          b.vx = a.dir * WALK + carry;
+          b.vx = a.dir * (inW ? SWIM.speed : WALK) + carry;
           const g = move(b, gates);
           if (touched(b, got)) { dead = true; break; }
           if (b.y > H * T + 40) { dead = true; break; }
           if (g && (!a.walk || f >= 5)) { landed = true; break; }
+          if (inW && ++wetFrames >= 24) { swimState = true; break; }
         }
-        if (!landed || dead) continue;
-        const k = key(b);
-        if (!seen.has(k)) { seen.add(k); q.push({ x: b.x, y: b.y, gt: b.gt }); }
+        if ((!landed && !swimState) || dead) continue;
+        const n = { x: b.x, y: b.y, gt: b.gt, swim: swimState && !landed, vy: b.vy };
+        const k = key(n);
+        if (!seen.has(k)) { seen.add(k); q.push(n); }
       }
     }
     return got;

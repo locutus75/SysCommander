@@ -7,13 +7,14 @@
  *   G  green candle     R  red candle        ^  spikes             D  force-field gate
  *   >  conveyor (pushes right)                <  conveyor (pushes left)
  *   Z  cracked bridge plank (one-way, crumbles when stood on)
+ *   U  bubble vent (refills air under water); water itself is a separate layer, see b.water()
  *   o  SYS coin         b  BTC orb           a  Z-DAG ammo         k  keygem
  *   1  extra life       p  pogo stick        L  chainlock          C  checkpoint (Sentry Node)
  *   !  info sign        E  exit door         P  player start
  * Spawns (removed from the map on load)
  *   r  rug puller       f  FUD ghost         B  bear market        g  gas guzzler
  *   w  whale            X  51% attacker      x  fraud bot (disguised as a coin)
- *   h  bridge hacker
+ *   h  bridge hacker      j  impermanent-loss jellyfish   q  rug shark   u  depeg
  *   M  vertical candle platform
  *   N  horizontal platform
  */
@@ -22,6 +23,8 @@ const LEVELS = (() => {
 
   function build(W, fn) {
     const g = Array.from({ length: H }, () => Array(W).fill('.'));
+    const wet = Array.from({ length: H }, () => Array(W).fill('.'));
+    let hasWater = false;
     const set = (x, y, c) => { if (x >= 0 && x < W && y >= 0 && y < H) g[y][x] = c; };
     const rect = (x1, y1, x2, y2, c = '#') => {
       for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) set(x, y, c);
@@ -34,8 +37,15 @@ const LEVELS = (() => {
       row: (x1, x2, y, c) => rect(x1, y, x2, y, c),
       // A wall with a force field in it; needs a keygem to pass.
       gate: (x, top = 9, floor = 13) => { rect(x, 0, x, top - 1, '#'); rect(x, top, x, floor - 1, 'D'); },
+      // Water is its own layer, so coins and enemies can sit inside it.
+      water: (x1, y1, x2, y2) => {
+        hasWater = true;
+        for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) if (wet[y] && x >= 0 && x < W) wet[y][x] = 'W';
+      },
     });
-    return g.map((r) => r.join(''));
+    const rows = g.map((r) => r.join(''));
+    if (hasWater) rows.water = wet.map((r) => r.join(''));
+    return rows;
   }
 
   return [
@@ -238,7 +248,7 @@ const LEVELS = (() => {
       signs: [
         '2021. Gas fees are through the roof! Gas guzzlers hop at you - blast them before they land.',
         'Why pay $100 for one swap? The NEVM brings EVM smart contracts to a Bitcoin merge-mined chain.',
-        'NEVM is live! Next stop: Layer 2, where transactions roll up...',
+        'NEVM is live! Time to dive into DeFi...',
       ],
       map: build(170, (b) => {
         b.ground(0, 25);
@@ -269,8 +279,90 @@ const LEVELS = (() => {
       }),
     },
     {
+      theme: 'pools',
+      era: 'ERA VI - 2021/22',
+      title: 'LIQUIDITY POOLS',
+      story: 'DeFi summer on the NEVM! Liquidity pools pop up everywhere, promising sky-high yields. Dive in and collect what you can, but watch your air, the Impermanent Loss jellyfish and the Rug Sharks lurking in the deep end.',
+      threats: ['j', 'q', 'r'],
+      signs: [
+        'DeFi summer! Dive into the liquidity pools: press JUMP to swim, and surface before your AIR runs out.',
+        'Impermanent Loss jellyfish sting. Rug Sharks hunt anyone in their pool - shoot first! Bubble vents refill your air.',
+        'Deep pools, high APY... but in 2022 the tide went out.',
+      ],
+      map: build(170, (b) => {
+        b.ground(0, 14, 8);
+        b.set(2, 7, 'P'); b.set(4, 7, '!');
+        b.row(7, 11, 6, 'o');
+        // pool 1: a gentle first dip
+        b.rect(15, 15, 34, 15); b.water(15, 9, 34, 14);
+        b.row(18, 22, 12, 'o'); b.set(26, 14, 'b'); b.set(24, 11, 'j'); b.set(30, 14, 'U');
+        b.ground(35, 50, 8);
+        b.set(38, 7, '!'); b.set(42, 7, 'r'); b.set(46, 7, 'a');
+        // pool 2: deeper, with a reef in the middle and a shark
+        b.rect(51, 15, 80, 15); b.water(51, 9, 80, 14);
+        b.rect(60, 11, 61, 14);
+        b.set(56, 12, 'j'); b.set(72, 11, 'q');
+        b.row(64, 68, 13, 'o'); b.set(66, 14, 'U'); b.set(77, 14, 'b');
+        b.ground(81, 95, 8);
+        b.set(83, 7, 'C'); b.set(88, 3, 'f');
+        b.rect(90, 4, 91, 7); b.set(90, 3, 'k'); b.set(91, 3, 'o');
+        // pool 3: the deep end, with a force field under water
+        b.rect(96, 15, 125, 15); b.water(96, 9, 125, 14);
+        b.rect(110, 0, 110, 8); b.rect(110, 9, 110, 14, 'D');
+        b.set(103, 12, 'q'); b.set(118, 11, 'q'); b.set(114, 10, 'j');
+        b.set(106, 14, 'U'); b.set(121, 14, 'U');
+        b.row(99, 102, 13, 'o'); b.row(113, 116, 13, 'o'); b.set(123, 14, 'b');
+        b.ground(126, 169, 8);
+        b.set(128, 7, 'C');
+        b.set(134, 7, 'r'); b.row(140, 141, 7, '^');
+        b.plat(144, 147, 5); b.set(145, 4, '1'); b.set(146, 4, 'b');
+        b.set(152, 7, 'r'); b.set(156, 7, 'a');
+        b.row(150, 154, 5, 'o');
+        b.set(160, 7, '!'); b.set(166, 7, 'E');
+      }),
+    },
+    {
+      theme: 'contagion',
+      era: 'ERA VII - 2022',
+      title: 'CONTAGION',
+      story: 'The year the dominoes fell. A giant algorithmic stablecoin lost its peg, lenders froze withdrawals, and a top exchange went bankrupt. A wave of collapse is sweeping through crypto - it is right behind you. RUN!',
+      threats: ['u', 'r', 'f'],
+      chase: { speed: 0.95, start: -200 },
+      signs: [
+        'May 2022: the Terra/LUNA stablecoin lost its peg and the collapse spread. Keep running!',
+        'Contagion: lenders froze withdrawals one after another. Depegged coins hop at you - three hits to stop one.',
+        'November 2022: FTX, one of the biggest exchanges, went bankrupt. Not your keys, not your coins!',
+        'Through it all, Syscoin kept building. Next up: Layer 2.',
+      ],
+      map: build(190, (b) => {
+        b.ground(0, 20);
+        b.set(2, 12, 'P'); b.set(4, 12, '!');
+        b.row(7, 10, 11, 'o'); b.set(16, 12, 'u');
+        b.ground(24, 45);
+        b.rect(28, 11, 29, 12); b.rect(32, 9, 33, 12); b.row(32, 33, 8, 'o');
+        b.set(38, 12, 'r'); b.set(42, 12, 'a');
+        b.row(46, 52, 13, 'Z'); b.row(47, 51, 11, 'o');
+        b.ground(53, 80);
+        b.set(58, 12, 'u'); b.row(62, 63, 12, '^'); b.set(66, 12, 'u');
+        b.set(70, 12, 'C'); b.set(72, 12, '!'); b.set(76, 8, 'f');
+        b.ground(84, 110);
+        b.set(86, 12, 'a');
+        b.rect(88, 11, 90, 12); b.rect(91, 9, 93, 12); b.set(92, 8, 'b');
+        b.set(100, 12, 'u'); b.set(106, 12, 'r'); b.row(101, 104, 10, 'o');
+        b.row(111, 118, 13, 'Z'); b.row(112, 117, 11, 'o');
+        b.ground(119, 150);
+        b.set(121, 12, '!'); b.set(124, 12, 'C');
+        b.row(130, 131, 12, '^');
+        b.set(136, 12, 'u'); b.plat(138, 141, 11); b.set(139, 10, '1'); b.set(140, 10, 'o');
+        b.set(144, 12, 'u'); b.set(147, 12, 'a');
+        b.ground(154, 189);
+        b.set(160, 12, 'r'); b.set(166, 12, 'u'); b.row(168, 172, 10, 'o'); b.set(174, 7, 'f');
+        b.set(180, 12, '!'); b.set(186, 12, 'E');
+      }),
+    },
+    {
       theme: 'rollux',
-      era: 'ERA VI - 2023',
+      era: 'ERA VIII - 2023',
       title: 'ROLLUX RISING',
       story: 'Layer 2 time! Rollux, an optimistic rollup, bundles piles of transactions into batches settled on Syscoin. Ride the rollup lanes, and remember: optimistic means trust... but verify. Some coins are not what they seem.',
       threats: ['x', 'r', 'f'],
@@ -322,7 +414,7 @@ const LEVELS = (() => {
     },
     {
       theme: 'siege',
-      era: 'ERA VII - FINALE',
+      era: 'ERA IX - FINALE',
       title: 'THE 51% SIEGE',
       story: 'A 51% Attacker has rented a mountain of hashpower and wants to rewrite history! Collect all four Chainlocks - finality signed by the Sentry Nodes - to break its shield, then blast it back to the mempool.',
       threats: ['X'],

@@ -29,14 +29,16 @@ Touch devices get on-screen buttons.
 3. **Crypto Winter (2018/19)**: slippery ice and charging Bear Markets, while the builders keep shipping.
 4. **The Bridge (2019/20)**: cross the river on the bridge to Ethereum. Cracked planks crumble under your feet, and Bridge Hackers lob exploit packets at you.
 5. **The Gas Wars (2021)**: gas guzzlers everywhere. Reach the NEVM.
-6. **Rollux Rising (2023)**: Layer 2! Ride the rollup conveyor lanes, and don't trust every coin: Fraud Bots disguise themselves as SYS coins until you get close.
-7. **The 51% Siege**: boss fight. Collect all 4 Chainlocks to break the 51% Attacker's shield, then blast it.
+6. **Liquidity Pools (2021/22)**: DeFi summer, under water. Press jump to swim, watch your air meter, and refill it at the surface or at bubble vents. Beware the Impermanent Loss jellyfish and the Rug Sharks.
+7. **Contagion (2022)**: the year the dominoes fell. A wave of collapse chases you through the level, and Depegged stablecoins hop at you. Keep running!
+8. **Rollux Rising (2023)**: Layer 2! Ride the rollup conveyor lanes, and don't trust every coin: Fraud Bots disguise themselves as SYS coins until you get close.
+9. **The 51% Siege**: boss fight. Collect all 4 Chainlocks to break the 51% Attacker's shield, then blast it.
 
 ## Pickups
 
 - Blue **SYS coins** (100) and orange **BTC merge-mining orbs** (500). Collect every coin in an era for a bonus.
   The SYS coins follow the Syscoin logo through the years: the original circuit-style "SYS" coin (Eras I-II),
-  the swoosh "S" (Eras III-V) and the flat S coin in today's brand blue (Eras VI-VII).
+  the swoosh "S" (Eras III-VII) and the flat S coin in today's brand blue (Eras VIII-IX).
 - **Z-DAG cells** give 5 more blaster shots.
 - **Keygems** open red force-field gates.
 - **1UP** helmets. You also get an extra life every 20,000 points.
