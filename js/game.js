@@ -77,7 +77,7 @@ function checkSecret(key) {
 function toggleCheat() {
   G.cheat = !G.cheat;
   if (G.cheat) { G.cheatUsed = true; SFX.oneup(); } else SFX.shieldDown();
-  if (L && G.state === 'play') toast(G.cheat ? 'CHEAT MODE ON - HIGH SCORE DISABLED' : 'CHEAT MODE OFF', 150);
+  if (L && G.state === 'play') toast(G.cheat ? 'CHEAT ON - HOLD JUMP TO FLOAT' : 'CHEAT MODE OFF', 150);
 }
 
 window.addEventListener('keydown', (e) => {
@@ -286,6 +286,7 @@ function updatePlayer() {
   if (p.vy >= 0) p.jumping = false;
 
   p.vy = Math.min(MAXFALL, p.vy + GRAV);
+  if (G.cheat && keys.jump && p.vy > 0.6) p.vy = 0.6; // cheat: hold jump to float down gently
   const prevBottom = p.y + p.h;
   const carry = p.onGround ? CONVEYOR[p.groundTile] || 0 : 0;
   p.vx += carry;

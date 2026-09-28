@@ -100,8 +100,64 @@ function check(def, idx) {
   return `ok (${gotCoins}/${coins} collectibles reachable)`;
 }
 
+// The reachability search above samples each moving platform on its own. That is only
+// valid if you can wait somewhere static between two moving platforms. When two moving
+// platforms follow each other with nothing static in between, simulate their real
+// positions over time (same formulas and phases as js/game.js) and make sure a hop from
+// one to the next is possible at some moment.
+// Horizontal distance a normal running jump covers before dropping back to `rise` px above take-off.
+function reach(rise) {
+  let y = 0, vy = -JUMP, best = -Infinity;
+  for (let f = 1; f < 120; f++) {
+    vy = Math.min(MAXFALL, vy + GRAV); y += vy;
+    if (-y >= rise) best = f * WALK; else if (vy > 0) break;
+  }
+  return best;
+}
+function checkPlatformChains(def) {
+  const H = def.map.length, map = def.map;
+  const plats = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < map[0].length; x++) {
+    const c = map[y][x];
+    if (c === 'M' || c === 'N') plats.push({ kind: c, tx: x, ty: y });
+  }
+  const pos = (p, t) => ({
+    x: p.tx * T + (p.kind === 'N' ? Math.sin(t * 0.018 + p.tx * 0.7) * 48 : 0),
+    y: p.ty * T + (p.kind === 'M' ? Math.sin(t * 0.02 + p.tx * 0.7) * 32 : 0),
+  });
+  const walkable = (c) => c === '#' || c === '~' || c === 'G' || c === 'R' || c === '=' || c === 'Z' || c === '>' || c === '<';
+  const problems = [];
+  plats.sort((a, b) => a.tx - b.tx);
+  for (let i = 0; i + 1 < plats.length; i++) {
+    const a = plats[i], b = plats[i + 1];
+    if (b.tx - a.tx > 14) continue;
+    const from = a.tx + (a.kind === 'N' ? 0 : 3), to = b.tx - (b.kind === 'N' ? 0 : 1);
+    let staticBetween = false;
+    for (let x = from; x <= to && !staticBetween; x++) {
+      for (let y = Math.min(a.ty, b.ty) - 3; y <= Math.max(a.ty, b.ty) + 2; y++) if (map[y] && walkable(map[y][x])) staticBetween = true;
+    }
+    if (staticBetween) continue;
+    let okFrames = 0;
+    for (let t = 0; t < 4000; t++) {
+      let ok = false;
+      const pa = pos(a, t), pb = pos(b, t);
+      // take off with the player's left edge still on A, land with its right edge past B's left edge
+      const travel = pb.x - (pa.x + 48) - PW + 4, rise = pa.y - pb.y;
+      if (travel <= 0 && rise <= 0) ok = true;
+      else if (reach(rise) >= travel) ok = true;
+      if (ok) okFrames++;
+    }
+    const pct = Math.round((okFrames / 4000) * 100);
+    if (pct === 0) problems.push(`moving platforms at tiles ${a.tx} and ${b.tx} never come within jumping distance`);
+    else if (pct < 25) problems.push(`hop between moving platforms at tiles ${a.tx} and ${b.tx} is only possible ${pct}% of the time`);
+  }
+  return problems;
+}
+
 let fail = false;
 LEVELS.forEach((def, i) => {
+  const chain = checkPlatformChains(def);
+  if (chain.length) { fail = true; console.log(`Level ${i + 1} ${def.title}: ${chain.join('; ')}`); return; }
   const r = check(def, i);
   if (!r.startsWith('ok')) fail = true;
   console.log(`Level ${i + 1} ${def.title}: ${r}`);
