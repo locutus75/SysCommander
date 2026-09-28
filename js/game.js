@@ -5,6 +5,8 @@ const GRAV = 0.35, MAXFALL = 7, WALK = 1.7, JUMP = 5.5, POGO_LOW = 5.0, POGO_HIG
 const SHOT_SPEED = 5, START_LIVES = 3;
 // Crumbling bridge planks ('Z'): frames until a plank gives way, and until it grows back.
 const CRUMBLE_AFTER = 30, CRUMBLE_RESPAWN = 200;
+// Swimming: every jump press is a stroke; near the surface it becomes a leap out of the water.
+const SWIM = { grav: 0.08, maxSink: 1.1, stroke: -2.6, speed: 1.2, leap: -5.4 }, AIR_MAX = 720;
 // Rollup conveyor lanes push whatever stands on them.
 const CONVEYOR = { '>': 0.8, '<': -0.8 };
 
@@ -16,6 +18,9 @@ const EDEF = {
   w: { w: 30, h: 18, hp: 4, score: 800, name: 'WHALE', fly: true },
   x: { w: 12, h: 14, hp: 2, score: 400, name: 'FRAUD BOT' },
   h: { w: 12, h: 16, hp: 2, score: 400, name: 'BRIDGE HACKER' },
+  j: { w: 12, h: 14, hp: 2, score: 300, name: 'IMPERMANENT LOSS', fly: true },
+  q: { w: 26, h: 12, hp: 3, score: 500, name: 'RUG SHARK', fly: true },
+  u: { w: 12, h: 12, hp: 3, score: 400, name: 'DEPEG' },
   X: { w: 40, h: 40, hp: 14, score: 5000, name: '51% ATTACKER', fly: true, boss: true },
 };
 
@@ -146,6 +151,8 @@ function loadLevel(i) {
     def, W: map[0].length, H: map.length, map, enemies: [], platforms: [], shots: [], eshots: [],
     particles: [], popups: [], signs: {}, keys: 0, locks: 0, locksTotal: 0, t: 0, toast: null,
     sign: null, boss: null, cam: { x: 0, y: 0 }, start: null, checkpoint: null, shake: 0, crumble: new Map(),
+    water: def.map.water ? def.map.water.map((row) => [...row].map((c) => c === 'W')) : null,
+    wall: def.chase ? { x: def.chase.start } : null,
   };
   const signPos = [];
   for (let ty = 0; ty < L.H; ty++) {
@@ -178,9 +185,15 @@ function spawnPlayer() {
     x: L.checkpoint.x, y: L.checkpoint.y, w: 10, h: 22, vx: 0, vy: 0, facing: 1, onGround: false,
     groundTile: '.', onPlat: null, pogo: false, jumping: false, jumpBuf: 0, coyote: 0,
     shootCd: 0, shootAnim: 0, walkT: 0, frame: 0, dead: false, deadT: 0, invuln: 90,
+    air: AIR_MAX, swimming: false, leapT: 0,
   };
   L.eshots.length = 0;
+  // the collapse restarts well behind the checkpoint
+  if (L.wall) L.wall.x = Math.min(L.wall.x, L.checkpoint.x - 240);
 }
+
+const waterAt = (tx, ty) => !!(L.water && L.water[ty] && L.water[ty][tx]);
+const inWater = (x, y) => waterAt(Math.floor(x / T), Math.floor(y / T));
 
 // ---------- physics ----------
 function moveBody(b, oneway = true) {
@@ -258,20 +271,31 @@ function updatePlayer() {
 
   const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
   if (dir) p.facing = dir;
+  const swim = inWater(p.x + p.w / 2, p.y + p.h / 2);
+  if (swim && !p.swimming) { p.pogo = false; p.jumping = false; burst(p.x + p.w / 2, p.y + 4, '#bfe9ff', 8, 1.2); }
+  p.swimming = swim;
   const ice = p.onGround && p.groundTile === '~';
-  const accel = p.onGround ? (ice ? 0.05 : 0.4) : 0.25;
-  const target = dir * WALK;
+  const accel = swim ? 0.15 : p.onGround ? (ice ? 0.05 : 0.4) : 0.25;
+  const target = dir * (swim ? SWIM.speed : WALK);
   if (p.vx < target) p.vx = Math.min(target, p.vx + accel);
   else if (p.vx > target) p.vx = Math.max(target, p.vx - accel);
 
-  if (pressed.pogo) {
+  if (pressed.pogo && !swim) {
     if (G.hasPogo || G.cheat) { p.pogo = !p.pogo; SFX.pogo(); }
     else toast('NO POGO STICK YET!', 90);
   }
 
   p.jumpBuf = pressed.jump ? 7 : Math.max(0, p.jumpBuf - 1);
   p.coyote = p.onGround ? 6 : Math.max(0, p.coyote - 1);
-  if (p.pogo) {
+  if (p.leapT > 0) p.leapT--;
+  if (swim) {
+    if (pressed.jump) {
+      const nearSurface = !inWater(p.x + p.w / 2, p.y - 4);
+      if (nearSurface) { p.vy = SWIM.leap; p.leapT = 20; SFX.jump(); }
+      else { p.vy = Math.max(SWIM.stroke, p.vy + SWIM.stroke); SFX.pogo(); }
+      p.onGround = false; p.onPlat = null; p.jumpBuf = 0;
+    }
+  } else if (p.pogo) {
     if (p.onGround) {
       p.vy = keys.jump ? -POGO_HIGH : -POGO_LOW;
       p.onGround = false; p.onPlat = null; p.coyote = 0;
@@ -285,8 +309,14 @@ function updatePlayer() {
   if (p.jumping && !keys.jump && p.vy < -2) p.vy = -2;
   if (p.vy >= 0) p.jumping = false;
 
-  p.vy = Math.min(MAXFALL, p.vy + GRAV);
+  if (swim && p.leapT <= 0) p.vy = Math.max(SWIM.stroke, Math.min(SWIM.maxSink, p.vy + SWIM.grav));
+  else p.vy = Math.min(MAXFALL, p.vy + (swim ? SWIM.grav : GRAV));
   if (G.cheat && keys.jump && p.vy > 0.6) p.vy = 0.6; // cheat: hold jump to float down gently
+  // oxygen: drains while your head is under water, refills in the air
+  if (inWater(p.x + p.w / 2, p.y + 3)) {
+    if (!G.cheat && --p.air <= 0) { toast('OUT OF AIR!', 90); p.invuln = 0; killPlayer(); return; }
+    if (p.air === 240) toast('AIR RUNNING LOW - SURFACE OR FIND BUBBLES!', 120);
+  } else p.air = Math.min(AIR_MAX, p.air + 8);
   const prevBottom = p.y + p.h;
   const carry = p.onGround ? CONVEYOR[p.groundTile] || 0 : 0;
   p.vx += carry;
@@ -358,8 +388,14 @@ function touchTiles(p) {
           setTile(tx, ty, 'c'); SFX.checkpoint(); toast('SENTRY NODE ONLINE - PROGRESS SAVED', 120);
           L.checkpoint = { x: tx * T + 3, y: (ty + 1) * T - p.h };
           break;
-        case '^': if (p.y + p.h > ty * T + 8) killPlayer(); break;
+        case '^': // forgiving hitbox: only the lower part of the spikes, with a little side margin
+          if (p.y + p.h > ty * T + 11 && p.x + p.w - 2 > tx * T && p.x + 2 < tx * T + T) killPlayer();
+          break;
         case '!': L.sign = L.signs[tx + ',' + ty] || null; break;
+        case 'U':
+          if (p.air < AIR_MAX && (L.t & 7) === 0) SFX.coin();
+          p.air = Math.min(AIR_MAX, p.air + 12);
+          break;
         case 'E': completeLevel(); return;
         default: break;
       }
@@ -431,6 +467,32 @@ function updateEnemy(e) {
         SFX.bossShot();
       }
       if (e.typing > 0) e.typing--;
+      break;
+    }
+    case 'j': { // Impermanent Loss jellyfish: bobs up and down
+      e.x = e.bx + Math.sin(e.t * 0.011) * 10;
+      e.y = e.by + Math.sin(e.t * 0.035) * 26;
+      break;
+    }
+    case 'q': { // Rug Shark: patrols its pool, charges at swimmers
+      const hunting = !p.dead && p.swimming && Math.abs(dx) < 150 && Math.abs(dy) < 40;
+      if (hunting) e.dir = Math.sign(dx) || e.dir;
+      const nx = e.x + e.w / 2 + e.dir * (e.w / 2 + 3);
+      if (!inWater(nx, e.y + e.h / 2) || isSolid(tileAt(Math.floor(nx / T), Math.floor((e.y + e.h / 2) / T)))) e.dir *= -1;
+      e.x += e.dir * (hunting ? 1.5 : 0.7);
+      e.y = e.by + Math.sin(e.t * 0.05) * 3;
+      break;
+    }
+    case 'u': { // Depeg: a stablecoin that lost its peg and hops at you
+      e.vy = Math.min(MAXFALL, e.vy + GRAV);
+      if (e.onGround) {
+        e.vx *= 0.7;
+        if (Math.abs(dx) < 220) e.dir = Math.sign(dx) || e.dir;
+        if (e.t % 50 === 0) { e.vy = -4.6; e.vx = e.dir * 1.5; }
+      }
+      const res = moveBody(e);
+      if (res.wall) e.dir *= -1;
+      e.onGround = res.ground;
       break;
     }
     case 'x': { // Fraud Bot: poses as a SYS coin until you get close
@@ -546,6 +608,8 @@ function updateLevel() {
   if (G.state !== 'play') return;
   const p = L.p;
   updateCrumble(p);
+  updateWall(p);
+  if (G.state !== 'play') return;
 
   // only simulate enemies near the camera (like the classics)
   for (const e of L.enemies) {
@@ -598,6 +662,17 @@ function updateLevel() {
   L.popups = L.popups.filter((q) => q.life > 0);
 
   updateCamera(false);
+}
+
+// Contagion: a wave of collapse rolls in from the left. It is slower than you, but it
+// speeds up when it falls far behind so the pressure never goes away.
+function updateWall(p) {
+  const w = L.wall;
+  if (!w || p.dead) return;
+  const behind = p.x - w.x;
+  w.x += behind > 140 ? 2.4 : L.def.chase.speed;
+  if (behind < 4 && !G.cheat) { toast('CAUGHT BY THE CONTAGION!', 90); p.invuln = 0; killPlayer(); }
+  for (const e of L.enemies) if (!e.dead && e.x + e.w < w.x) { e.dead = true; burst(e.x + e.w / 2, e.y + e.h / 2, '#ff3b3b', 8, 1.5); }
 }
 
 // Crumbling planks start shaking when stood on, drop away, and grow back later.
@@ -763,6 +838,8 @@ function renderLevel() {
     }
   }
   for (const q of L.particles) R(Math.round(q.x - cx), Math.round(q.y - cy), 2, 2, q.c);
+  if (L.water) drawWater(tx0, tx1, ty0, ty1, cx, cy);
+  if (L.wall) drawWall(Math.round(L.wall.x - cx));
   for (const q of L.popups) textS(q.s, Math.round(q.x - cx), Math.round(q.y - cy), q.c);
 
   drawHUD();
@@ -771,6 +848,39 @@ function renderLevel() {
     const w = Math.min(VW - 16, L.toast.s.length * 8 + 16);
     panel(VW / 2 - w / 2, 18, w, 16, 'rgba(8,14,40,0.9)', C.gold);
     text(L.toast.s, VW / 2, 22, '#ffd400', 'center');
+  }
+}
+
+// Water is drawn over everything in it, so swimmers and fish look submerged.
+function drawWater(tx0, tx1, ty0, ty1, cx, cy) {
+  for (let ty = ty0; ty <= ty1; ty++) {
+    for (let tx = Math.max(0, tx0); tx <= Math.min(L.W - 1, tx1); tx++) {
+      if (!waterAt(tx, ty)) continue;
+      const sx = tx * T - cx, sy = ty * T - cy;
+      R(sx, sy, T, T, 'rgba(30,140,230,0.38)');
+      if (!waterAt(tx, ty - 1)) {
+        const wv = Math.round(Math.sin(G.t * 0.08 + tx * 0.9) * 1.5);
+        R(sx, sy + wv, T, 2, 'rgba(190,235,255,0.8)');
+        R(sx + ((tx * 5 + (G.t >> 3)) % 12), sy + 3 + wv, 4, 1, 'rgba(255,255,255,0.6)');
+      }
+      if (((tx * 7 + ty * 3 + (G.t >> 4)) % 23) === 0) R(sx + 6, sy + 15 - ((G.t >> 1) % 16), 2, 2, 'rgba(220,245,255,0.7)');
+    }
+  }
+}
+
+// The contagion: a glitching red wave eating the level from the left.
+function drawWall(wx) {
+  if (wx < -20) return;
+  const w = Math.min(VW, wx);
+  if (w > 0) { ctx.fillStyle = 'rgba(40,0,0,0.85)'; ctx.fillRect(0, 0, w, VH); }
+  for (let y = 0; y < VH; y += 4) {
+    const j = Math.round(Math.sin(y * 0.3 + G.t * 0.25) * 4 + Math.sin(y * 0.11 - G.t * 0.1) * 6);
+    R(wx + j - 6, y, 6, 4, (y + (G.t >> 1)) % 12 < 6 ? '#ff3b3b' : '#ff8a3d');
+    R(wx + j, y, 2, 4, '#ffd166');
+  }
+  for (let i = 0; i < 6; i++) {
+    const y = mod(i * 37 + G.t * 0.7, VH);
+    if (wx - 40 > 0) text(i % 2 ? '-99%' : 'UST $0.1', Math.max(2, wx - 70 + (i * 13) % 40), y, '#ff6b6b');
   }
 }
 
@@ -789,6 +899,14 @@ function drawHUD() {
     text(L.def.era.split(' - ')[0], VW - 3, 3, '#7aa5ff', 'right');
   }
   if (G.cheat && (G.t >> 5) & 1) textS('CHEAT', 3, VH - 11, '#ff2bd6');
+  const p = L.p;
+  if (L.water && p.air < AIR_MAX && !p.dead) {
+    const low = p.air < 240;
+    panel(VW / 2 - 52, 37, 104, 12, 'rgba(8,14,40,0.9)', low && (G.t >> 3) & 1 ? '#ff3b3b' : '#7dd3fc');
+    text('AIR', VW / 2 - 48, 39, '#bfe9ff');
+    R(VW / 2 - 20, 40, 68, 6, '#0b2440');
+    R(VW / 2 - 20, 40, Math.round(68 * p.air / AIR_MAX), 6, low ? '#ff6b6b' : '#7dd3fc');
+  }
   const b = L.boss;
   if (b && !b.dead) {
     panel(80, 186, 160, 12, 'rgba(20,0,0,0.9)', '#ff3b3b');
@@ -847,7 +965,7 @@ function renderIntro() {
     ctx.save();
     ctx.translate(x, ty);
     ctx.scale(scale, scale);
-    drawEnemy({ type, dir: -1, flash: 0, shield: false, spout: 0, awake: true }, 0, type === 'f' ? 4 : 0, G.t);
+    drawEnemy({ type, dir: -1, flash: 0, shield: false, spout: 0, awake: true, hp: 3 }, 0, type === 'f' ? 4 : 0, G.t);
     ctx.restore();
     x += type === 'w' ? 40 : 28;
   }

@@ -18,6 +18,8 @@ const THEMES = {
   winter: { coin: 'v2', sky: ['#7fb8ea', '#dff0ff'], ground: '#56677d', speck: '#3e4b5c', top: '#ffffff', topDark: '#c7def0', plat: '#9fb6cc', platDark: '#6c8199', spike: '#d8f1ff', door: '#0ea5e9' },
   bridge: { coin: 'v2', sky: ['#2a1b4d', '#f2945f'], ground: '#6b6f7a', speck: '#4f535c', top: '#a3a9b4', topDark: '#737985', plat: '#8b5a2b', platDark: '#5a3a1a', spike: '#e0e6f0', door: '#1f5eff' },
   gas: { coin: 'v2', sky: ['#140a24', '#43204f'], ground: '#4b3a2c', speck: '#33261c', top: '#7c7f86', topDark: '#55585e', plat: '#a0845c', platDark: '#6b5535', spike: '#ff9f1c', door: '#8b5cf6' },
+  pools: { coin: 'v2', sky: ['#0a3d62', '#1e90b8'], ground: '#c9a86a', speck: '#a88a50', top: '#e8d5a0', topDark: '#bfa56c', plat: '#6fb7c9', platDark: '#3f8597', spike: '#ff7b7b', door: '#1f5eff' },
+  contagion: { coin: 'v2', sky: ['#1a0707', '#4a1a0e'], ground: '#3a3036', speck: '#271f24', top: '#8a7a80', topDark: '#5e5058', plat: '#7a6a70', platDark: '#4a3e44', spike: '#ff9f1c', door: '#16a34a' },
   rollux: { coin: 'v3', sky: ['#04061a', '#150a33'], ground: '#141a3a', speck: '#0b1030', top: '#00e5ff', topDark: '#0091a8', plat: '#3b4a78', platDark: '#222c50', spike: '#ff2bd6', door: '#00c2d6' },
   siege: { coin: 'v3', sky: ['#0d0203', '#3a0909'], ground: '#2d2b3a', speck: '#1d1b27', top: '#a3a3b8', topDark: '#6b6b80', plat: '#6b6b80', platDark: '#3f3f50', spike: '#ff3b3b', door: '#1f5eff' },
 };
@@ -148,6 +150,45 @@ function drawBackground(themeName, camX, camY, t) {
       const x = Math.round(mod((h % VW) - camX * sp * 0.6 + Math.sin(t * 0.02 + i) * 6, VW));
       const y = Math.round(mod(((h >>> 9) % VH) + t * sp, VH));
       R(x, y, i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1, '#ffffff');
+    }
+  } else if (themeName === 'pools') {
+    // sun rays through the water and swaying kelp
+    for (let i = 0; i < 6; i++) {
+      const x = Math.round(mod(i * 70 - camX * 0.1, VW + 60)) - 30;
+      ctx.fillStyle = 'rgba(200,240,255,0.07)';
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 24, 0); ctx.lineTo(x + 70, VH); ctx.lineTo(x + 40, VH); ctx.fill();
+    }
+    const par = 0.35, kw = 26;
+    const k0 = Math.floor((camX * par) / kw) - 1;
+    for (let k = k0; k < k0 + VW / kw + 3; k++) {
+      const h = hash(k + 300);
+      const x = Math.round(k * kw - camX * par), len = 40 + (h % 60);
+      for (let y = 0; y < len; y += 3) R(x + Math.round(Math.sin(t * 0.03 + y * 0.08 + k) * (y / 12)), VH - y, 3, 3, (h & 1) ? '#0f5e4a' : '#127357');
+    }
+    // DeFi pool signs floating in the distance
+    for (let k = Math.floor(camX * 0.2 / 180) - 1; k < Math.floor(camX * 0.2 / 180) + 3; k++) {
+      const x = Math.round(k * 180 - camX * 0.2);
+      R(x, 40, 64, 18, '#0b2e46'); R(x + 1, 41, 62, 16, '#12507a');
+      text(k % 2 ? 'APY 999%' : 'SYS/USDC', x + 4, 46, k % 2 ? '#ffd166' : '#bfe9ff');
+    }
+  } else if (themeName === 'contagion') {
+    // a skyline of exchange towers, some already toppling
+    const par = 0.3, bw = 54;
+    const k0 = Math.floor((camX * par) / bw) - 1;
+    for (let k = k0; k < k0 + VW / bw + 3; k++) {
+      const h = hash(k + 900);
+      const x = Math.round(k * bw - camX * par), bh = 50 + (h % 70), tilt = (h % 4 === 0) ? 1 : 0;
+      for (let y = 0; y < bh; y += 2) R(x + (tilt ? Math.round(y * y / 900) : 0), VH - y, 36, 2, '#2a1414');
+      for (let wy = 10; wy < bh - 6; wy += 9) for (let wx = 4; wx < 32; wx += 9) {
+        const lit = hash(k * 97 + wy * 7 + wx) % 3 === 0 && ((t >> 5) + wx) % 7 !== 0;
+        R(x + wx + (tilt ? Math.round(((VH - (VH - wy)) ** 2) / 900) : 0), VH - wy, 4, 4, lit ? '#ff9f1c' : '#3a1c1c');
+      }
+    }
+    // red candles raining down
+    for (let i = 0; i < 14; i++) {
+      const hh = hash(i * 29 + 11);
+      const x = Math.round(mod((hh % 400) - camX * 0.5, 400)), y = Math.round(mod((hh >>> 8) % VH + t * (0.6 + (i % 3) * 0.3), VH + 20)) - 20;
+      if (x < VW) { R(x + 1, y - 3, 1, 3, '#8f1818'); R(x, y, 3, 8, '#b91c1c'); }
     }
   } else if (themeName === 'bridge') {
     // low sun over the river
@@ -365,6 +406,15 @@ function drawTile(c, tx, ty, sx, sy, th, t, above) {
         R(Math.max(sx, Math.min(sx + 15, dirc > 0 ? ax + 1 : ax + 2)), sy + 4, 2, 1, '#ff2bd6');
       }
       R(sx + (h % 12) + 2, sy + 9 + ((h >>> 5) % 5), 2, 2, th.speck);
+      break;
+    }
+    case 'U': { // bubble vent on the pool floor: refills your air
+      R(sx + 2, sy + 12, 12, 4, '#4a5a66'); R(sx + 3, sy + 13, 10, 1, '#222');
+      for (let i = 0; i < 4; i++) {
+        const by = sy + 12 - mod(t * 0.9 + i * 11, 44);
+        const bx = sx + 5 + Math.round(Math.sin(t * 0.1 + i * 2) * 3) + (i % 2) * 4;
+        R(bx, by, i % 2 ? 3 : 2, i % 2 ? 3 : 2, '#dff6ff');
+      }
       break;
     }
     case 'Z': // cracked bridge plank - crumbles when stood on
@@ -625,6 +675,35 @@ function drawEnemy(e, sx, sy, t) {
       const glow = e.typing > 0 && ((t >> 1) & 1) ? '#b6ff9e' : '#39ff14';
       r(9, 9, 6, 4, '#555'); r(10, 9, 4, 3, glow); r(8, 13, 8, 1, '#777');
       r(4 + f, 14, 3, 2, '#111'); r(9 - f, 14, 3, 2, '#111');
+      break;
+    }
+    case 'j': { // Impermanent Loss jellyfish
+      const r = S(sx - 2, sy - 1, 16, false);
+      const pulse = (t >> 4) & 1;
+      r(3, 0, 10, 2, '#e9a6ff'); r(1, 2, 14, 5 - pulse, '#d57bff'); r(3, 3, 3, 2, '#f6d9ff');
+      r(5, 4, 2, 2, '#2a0a3a'); r(10, 4, 2, 2, '#2a0a3a');
+      for (let i = 0; i < 4; i++) r(2 + i * 4, 7 - pulse, 1, 6 + ((t >> 3) + i) % 3, '#c060f0');
+      FLASH = false;
+      text('IL', sx + 6, sy - 10, '#f6d9ff', 'center');
+      break;
+    }
+    case 'q': { // Rug Shark
+      const r = S(sx - 2, sy - 2, 30, flip);
+      r(0, 3, 4, 4, '#4a6178'); r(0, 8, 4, 4, '#4a6178');
+      r(3, 5, 20, 7, '#5f7c96'); r(21, 6, 8, 5, '#5f7c96'); r(8, 1, 6, 4, '#4a6178');
+      r(6, 10, 18, 3, '#d8e3ec');
+      r(24, 7, 2, 2, '#fff'); r(25, 8, 1, 1, '#000');
+      r(22, 11, 7, 1, '#fff'); r(23, 12, 1, 1, '#fff'); r(26, 12, 1, 1, '#fff');
+      r(10, 7, 9, 2, '#c1440e'); r(11, 7, 1, 2, '#ffd166'); r(15, 7, 1, 2, '#ffd166');
+      break;
+    }
+    case 'u': { // Depeg - a stablecoin that lost its peg
+      const col = e.hp >= 3 ? '#22c55e' : e.hp === 2 ? '#eab308' : '#ef4444';
+      const dark = e.hp >= 3 ? '#15803d' : e.hp === 2 ? '#a16207' : '#991b1b';
+      ellipse(sx + 6, sy + 6, 7, 7, dark); ellipse(sx + 6, sy + 6, 6, 6, col);
+      FLASH = false;
+      text('$', sx + 2, sy + 2, '#ffffff');
+      R(sx + (flip ? 1 : 9), sy + 3, 2, 2, '#000');
       break;
     }
     case 'x': { // Fraud Bot
