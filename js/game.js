@@ -28,6 +28,7 @@ const EDEF = {
 const G = {
   state: 'title', levelIndex: 0, score: 0, lives: START_LIVES, ammo: 10, hasPogo: false,
   t: 0, stateT: 0, hiscore: 0, nextLifeAt: 20000, tally: null, cheat: false, cheatUsed: false,
+  run: { startLevel: 1, levels: [] },
 };
 try { G.hiscore = parseInt(localStorage.getItem('syscommander.hiscore'), 10) || 0; } catch (e) { /* storage unavailable */ }
 function saveHiscore() {
@@ -712,10 +713,23 @@ function completeLevel() {
   const coinsLeft = L.map.reduce((n, row) => n + row.filter((c) => c === 'o').length, 0);
   const bonus = 1000 * (G.levelIndex + 1);
   const perfect = coinsLeft === 0 ? 2500 : 0;
-  G.tally = { bonus, perfect };
+  // Every second spent in the level (deaths included, pauses not) costs one point.
+  // It is only revealed here, at the end, so the score stays the thing to chase.
+  const seconds = Math.floor(L.t / 60);
+  G.tally = { bonus, perfect, seconds };
   addScore(bonus + perfect);
+  G.score = Math.max(0, G.score - seconds);
+  G.run.levels.push({ era: G.levelIndex + 1, seconds, score: G.score });
   SFX.level();
   setState('levelDone');
+}
+
+// A summary of the current run, ready to be submitted to an online leaderboard later.
+function newRun() { return { startLevel: G.levelIndex + 1, levels: [] }; }
+const runSeconds = () => G.run.levels.reduce((n, l) => n + l.seconds, 0);
+const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+function runSummary() {
+  return { score: G.score, seconds: runSeconds(), levels: G.run.levels, startLevel: G.run.startLevel, cheated: G.cheatUsed };
 }
 
 // ---------- state machine ----------
@@ -724,6 +738,7 @@ function newGame(level = 0) {
   G.score = 0; G.lives = START_LIVES; G.ammo = 10; G.hasPogo = false; G.nextLifeAt = 20000;
   G.cheatUsed = G.cheat;
   G.levelIndex = level;
+  G.run = newRun();
   loadLevel(level);
   setState('intro');
 }
@@ -758,6 +773,7 @@ function update() {
         // continue from the start of this era, but the score resets
         G.score = 0; G.lives = START_LIVES; G.nextLifeAt = 20000;
         G.cheatUsed = G.cheat;
+        G.run = newRun();
         loadLevel(G.levelIndex);
         setState('intro');
       }
@@ -976,12 +992,13 @@ function renderLevelDone() {
   renderLevel();
   ctx.fillStyle = 'rgba(0,0,0,0.6)';
   ctx.fillRect(0, 0, VW, VH);
-  panel(40, 50, VW - 80, 100, 'rgba(8,14,40,0.95)', C.gold);
-  textS('ERA COMPLETE!', VW / 2, 62, '#ffd400', 'center');
-  text(`ERA BONUS    ${G.tally.bonus}`, 60, 84, '#ffffff');
-  text(`ALL COINS    ${G.tally.perfect || '-'}`, 60, 98, G.tally.perfect ? '#7dd3fc' : '#888');
-  text(`SCORE   ${String(G.score).padStart(7, '0')}`, 60, 116, '#7aa5ff');
-  if (G.stateT > 60 && (G.t >> 5) & 1) text('PRESS ENTER', VW / 2, 134, '#fff', 'center');
+  panel(40, 46, VW - 80, 114, 'rgba(8,14,40,0.95)', C.gold);
+  textS('ERA COMPLETE!', VW / 2, 58, '#ffd400', 'center');
+  text(`ERA BONUS    ${G.tally.bonus}`, 60, 80, '#ffffff');
+  text(`ALL COINS    ${G.tally.perfect || '-'}`, 60, 94, G.tally.perfect ? '#7dd3fc' : '#888');
+  text(`TIME ${clock(G.tally.seconds).padStart(5)}  -${G.tally.seconds}`, 60, 108, '#ff9f9f');
+  text(`SCORE   ${String(G.score).padStart(7, '0')}`, 60, 126, '#7aa5ff');
+  if (G.stateT > 60 && (G.t >> 5) & 1) text('PRESS ENTER', VW / 2, 144, '#fff', 'center');
 }
 
 function renderGameOver() {
@@ -1010,8 +1027,9 @@ function renderVictory() {
     y += 5;
   }
   textS(`FINAL SCORE ${String(G.score).padStart(7, '0')}`, VW / 2, y + 4, '#7aa5ff', 'center');
+  text(`TOTAL TIME ${clock(runSeconds())}`, VW / 2, y + 16, '#ff9f9f', 'center');
   const fake = { facing: 1, pogo: true, onGround: false, frame: 0, shootAnim: 0 };
-  drawPlayer(fake, VW / 2 - 8, VH - 34 - Math.round(Math.abs(Math.sin(G.t * 0.08)) * 10), G.t);
+  drawPlayer(fake, 36, VH - 34 - Math.round(Math.abs(Math.sin(G.t * 0.08)) * 10), G.t);
   if (G.stateT > 120 && (G.t >> 5) & 1) text('PRESS ENTER', VW / 2, VH - 8, '#fff', 'center');
 }
 
@@ -1052,4 +1070,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // Expose a tiny hook for automated tests.
-window.SysCommander = { G, get L() { return L; }, newGame, keys, pressed, update };
+window.SysCommander = { G, get L() { return L; }, newGame, keys, pressed, update, runSummary };

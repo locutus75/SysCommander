@@ -45,6 +45,13 @@ Touch devices get on-screen buttons.
 - **Sentry Node flags** are checkpoints.
 - A pogo stomp from above damages regular enemies.
 
+## Scoring
+
+Collect coins and orbs, defeat enemies, and finish each era for an era bonus (plus a bonus for collecting every coin).
+Speed counts too: every second you spend in an era costs one point. There is no on-screen timer; the time and
+the penalty are only revealed on the "Era complete" screen, and the victory screen shows your total time.
+Coins stay worth the detour, but the time decides the last digits of your score, so equal scores are rare.
+
 ## Development
 
 - `js/levels.js` has the level maps, built with a tiny builder API. The tile legend is at the top of the file.
