@@ -15,9 +15,10 @@ async function main() {
   const referee = process.env.REFEREE_ADDRESS;
   if (!key || !referee || !ethers.isAddress(referee)) throw new Error('set DEPLOYER_KEY and REFEREE_ADDRESS');
   const provider = new ethers.JsonRpcProvider(rpc);
-  const wallet = new ethers.Wallet(key, provider);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(key, provider)); // tracks nonces across our two transactions
   const { chainId } = await provider.getNetwork();
-  console.log(`chain ${chainId}, deployer ${wallet.address}, balance ${ethers.formatEther(await provider.getBalance(wallet.address))}`);
+  const from = await wallet.getAddress();
+  console.log(`chain ${chainId}, deployer ${from}, balance ${ethers.formatEther(await provider.getBalance(from))}`);
 
   const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, wallet);
   const board = await factory.deploy(referee);

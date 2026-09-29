@@ -754,10 +754,12 @@ function completeLevel() {
 // A summary of the current run, ready to be submitted to an online leaderboard later.
 function newRun() { return { startLevel: G.levelIndex + 1, levels: [] }; }
 const runSeconds = () => G.run.levels.reduce((n, l) => n + l.seconds, 0);
+// total play time of the run, including the era you are in (or died in); used for leaderboard ties
+const playSeconds = () => runSeconds() + (L && !['levelDone', 'victory'].includes(G.state) ? Math.floor(L.t / 60) : 0);
 const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 function runSummary() {
   return {
-    version: GAME_VERSION, seed: G.seed, score: G.score, seconds: runSeconds(), levels: G.run.levels,
+    version: GAME_VERSION, seed: G.seed, score: G.score, seconds: playSeconds(), levels: G.run.levels,
     startLevel: G.run.startLevel, cheated: G.cheatUsed, continued: !!G.run.continued,
     frames: rec ? rec.reduce((n, r) => n + r[1], 0) : 0, replay: rec ? encodeRec(rec) : '',
   };
@@ -789,7 +791,13 @@ function applyFrame(m) {
 }
 
 // ---------- state machine ----------
-function setState(s) { G.state = s; G.stateT = 0; }
+function setState(s) {
+  G.state = s; G.stateT = 0;
+  // let the (optional) leaderboard know a run has ended; this never changes the game itself
+  if ((s === 'gameover' || s === 'victory') && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('syscommander:runend', { detail: runSummary() }));
+  }
+}
 function newGame(level = 0, seed = (Math.random() * 4294967296) >>> 0) {
   G.seed = seed; rng = makeRng(seed); G.t = 0; rec = [];
   G.score = 0; G.lives = START_LIVES; G.ammo = 10; G.hasPogo = false; G.nextLifeAt = 20000;
