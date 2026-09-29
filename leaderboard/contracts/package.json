@@ -1,0 +1,19 @@
+{
+  "name": "syscommander-leaderboard-contracts",
+  "private": true,
+  "description": "SysCommander leaderboard contract for zkSYS",
+  "scripts": {
+    "compile": "node scripts/compile.js",
+    "test": "node scripts/compile.js && hardhat test --no-compile",
+    "deploy": "node scripts/deploy.js"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.2",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@openzeppelin/contracts": "5.1.0",
+    "chai": "^4.5.0",
+    "ethers": "^6.13.4",
+    "hardhat": "^2.22.17",
+    "solc": "0.8.28"
+  }
+}
