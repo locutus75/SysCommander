@@ -70,3 +70,20 @@ and verifies that every keygem, chainlock and exit can be reached:
 ```sh
 node tools/check-levels.js
 ```
+
+### Verifiable runs (for the upcoming online leaderboard)
+
+Gameplay is fully deterministic: it uses a seeded random generator and a sine built only from
+`+ - * /`, never `Math.random`, `Math.sin`, `Math.cos` or `Math.atan2`, which may differ between
+browsers. Every run records its input frame by frame, and `SysCommander.runSummary()` returns the
+score, the per-era times, the seed and the recording. `tools/replay.js` replays such a summary
+through the real game code in Node and checks that it reproduces the claimed result. This is
+the core of the future score referee.
+
+```sh
+node tools/test-replay.js    # every era replays frame-exactly; tampered runs are rejected
+node tools/replay.js run.json
+```
+
+`js/names.js` turns a wallet address into a stable, friendly player name such as
+"Turbo Pogo Whale #3F2A" (`node tools/test-names.js`).

@@ -10,6 +10,33 @@ const SWIM = { grav: 0.08, maxSink: 1.1, stroke: -2.6, speed: 1.2, leap: -5.4 },
 // Rollup conveyor lanes push whatever stands on them.
 const CONVEYOR = { '>': 0.8, '<': -0.8 };
 
+// ---------- determinism ----------
+// Runs must replay identically on any browser and on the score server, so gameplay code
+// never uses Math.random, Math.sin/cos or Math.atan2 (the last three may differ per engine
+// in the last bits). Visual-only effects (particles, shake) may still use them.
+const GAME_VERSION = 1;
+function makeRng(seed) { // mulberry32
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+let rng = makeRng(1);
+const TAU = 6.283185307179586, HALF_PI = 1.5707963267948966, PI = 3.141592653589793;
+// sine from + - * / only (IEEE-exact everywhere); error below 1e-6
+function dsin(x) {
+  x -= Math.floor(x / TAU) * TAU;
+  if (x > PI) x -= TAU;
+  if (x > HALF_PI) x = PI - x; else if (x < -HALF_PI) x = -PI - x;
+  const x2 = x * x;
+  return x * (1 - (x2 / 6) * (1 - (x2 / 20) * (1 - (x2 / 42) * (1 - (x2 / 72) * (1 - x2 / 110)))));
+}
+const dcos = (x) => dsin(x + HALF_PI);
+
 const EDEF = {
   r: { w: 12, h: 16, hp: 1, score: 200, name: 'RUG PULLER' },
   f: { w: 14, h: 14, hp: 2, score: 300, name: 'FUD GHOST', fly: true },
@@ -137,7 +164,7 @@ function makeEnemy(type, tx, ty) {
   const d = EDEF[type];
   const e = {
     type, w: d.w, h: d.h, hp: d.hp, maxHp: d.hp, x: tx * T + (T - d.w) / 2, y: (ty + 1) * T - d.h,
-    vx: 0, vy: 0, dir: -1, t: Math.floor(Math.random() * 100), flash: 0, onGround: false,
+    vx: 0, vy: 0, dir: -1, t: Math.floor(rng() * 100), flash: 0, onGround: false,
     fly: !!d.fly, boss: !!d.boss,
   };
   e.bx = e.x; e.by = e.y;
@@ -471,8 +498,8 @@ function updateEnemy(e) {
       break;
     }
     case 'j': { // Impermanent Loss jellyfish: bobs up and down
-      e.x = e.bx + Math.sin(e.t * 0.011) * 10;
-      e.y = e.by + Math.sin(e.t * 0.035) * 26;
+      e.x = e.bx + dsin(e.t * 0.011) * 10;
+      e.y = e.by + dsin(e.t * 0.035) * 26;
       break;
     }
     case 'q': { // Rug Shark: patrols its pool, charges at swimmers
@@ -481,7 +508,7 @@ function updateEnemy(e) {
       const nx = e.x + e.w / 2 + e.dir * (e.w / 2 + 3);
       if (!inWater(nx, e.y + e.h / 2) || isSolid(tileAt(Math.floor(nx / T), Math.floor((e.y + e.h / 2) / T)))) e.dir *= -1;
       e.x += e.dir * (hunting ? 1.5 : 0.7);
-      e.y = e.by + Math.sin(e.t * 0.05) * 3;
+      e.y = e.by + dsin(e.t * 0.05) * 3;
       break;
     }
     case 'u': { // Depeg: a stablecoin that lost its peg and hops at you
@@ -527,7 +554,7 @@ function updateEnemy(e) {
       e.bx += e.dir * 0.45;
       if (Math.abs(dy) < 80 && Math.abs(dx) < 140) e.by += Math.sign(dy) * 0.12;
       e.x = e.bx;
-      e.y = e.by + Math.sin(e.t * 0.05) * 8;
+      e.y = e.by + dsin(e.t * 0.05) * 8;
       break;
     }
     case 'g': {
@@ -543,9 +570,9 @@ function updateEnemy(e) {
       break;
     }
     case 'w': {
-      e.dir = Math.cos(e.t * 0.01) >= 0 ? 1 : -1;
-      e.x = e.bx + Math.sin(e.t * 0.01) * 64;
-      e.y = e.by + Math.sin(e.t * 0.03) * 6;
+      e.dir = dcos(e.t * 0.01) >= 0 ? 1 : -1;
+      e.x = e.bx + dsin(e.t * 0.01) * 64;
+      e.y = e.by + dsin(e.t * 0.03) * 6;
       if (e.spout > 0) e.spout--;
       if (e.t % 110 === 0 && Math.abs(dx) < 170 && !p.dead) {
         L.eshots.push({ kind: 'candle', x: ecx - 2, y: e.y + e.h, vx: 0, vy: 0.5, g: 0.08, w: 5, h: 10, life: 300 });
@@ -555,15 +582,15 @@ function updateEnemy(e) {
     }
     case 'X': {
       const fast = e.hp <= e.maxHp / 2;
-      e.x = e.bx + Math.sin(e.t * 0.012) * 240;
-      e.y = e.by + Math.sin(e.t * 0.031) * 12 + 8;
+      e.x = e.bx + dsin(e.t * 0.012) * 240;
+      e.y = e.by + dsin(e.t * 0.031) * 12 + 8;
       e.dir = dx > 0 ? 1 : -1;
       const every = e.shield ? 100 : (fast ? 55 : 75);
       if (e.t % every === 0 && !p.dead) {
-        const a = Math.atan2(dy, dx);
+        const len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len;
         const spread = fast && !e.shield ? [-0.3, 0, 0.3] : [0];
         for (const s of spread) {
-          L.eshots.push({ kind: 'orb', x: ecx - 3, y: e.y + e.h / 2, vx: Math.cos(a + s) * 1.7, vy: Math.sin(a + s) * 1.7, g: 0, w: 6, h: 6, life: 360 });
+          L.eshots.push({ kind: 'orb', x: ecx - 3, y: e.y + e.h / 2, vx: (ux * dcos(s) - uy * dsin(s)) * 1.7, vy: (ux * dsin(s) + uy * dcos(s)) * 1.7, g: 0, w: 6, h: 6, life: 360 });
         }
         SFX.bossShot();
       }
@@ -600,8 +627,8 @@ function updateLevel() {
 
   for (const pl of L.platforms) {
     const ox = pl.x, oy = pl.y;
-    if (pl.kind === 'M') pl.y = pl.by + Math.sin(L.t * 0.02 + pl.phase) * 32;
-    else pl.x = pl.bx + Math.sin(L.t * 0.018 + pl.phase) * 48;
+    if (pl.kind === 'M') pl.y = pl.by + dsin(L.t * 0.02 + pl.phase) * 32;
+    else pl.x = pl.bx + dsin(L.t * 0.018 + pl.phase) * 48;
     pl.dx = pl.x - ox; pl.dy = pl.y - oy;
   }
 
@@ -654,7 +681,7 @@ function updateLevel() {
   // boss arena: keep the blaster fed
   if (L.def.boss && L.t % 300 === 0 && G.ammo < 6) {
     const spots = L.def.ammoSpots.filter(([x, y]) => tileAt(x, y) === '.');
-    if (spots.length) { const [x, y] = spots[Math.floor(Math.random() * spots.length)]; setTile(x, y, 'a'); }
+    if (spots.length) { const [x, y] = spots[Math.floor(rng() * spots.length)]; setTile(x, y, 'a'); }
   }
 
   for (const q of L.particles) { q.vy += q.g; q.x += q.vx; q.y += q.vy; q.life--; }
@@ -729,12 +756,42 @@ function newRun() { return { startLevel: G.levelIndex + 1, levels: [] }; }
 const runSeconds = () => G.run.levels.reduce((n, l) => n + l.seconds, 0);
 const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 function runSummary() {
-  return { score: G.score, seconds: runSeconds(), levels: G.run.levels, startLevel: G.run.startLevel, cheated: G.cheatUsed };
+  return {
+    version: GAME_VERSION, seed: G.seed, score: G.score, seconds: runSeconds(), levels: G.run.levels,
+    startLevel: G.run.startLevel, cheated: G.cheatUsed, continued: !!G.run.continued,
+    frames: rec ? rec.reduce((n, r) => n + r[1], 0) : 0, replay: rec ? encodeRec(rec) : '',
+  };
+}
+
+// ---------- input recording ----------
+// Every frame of a run stores which actions are held and which were just pressed.
+// The score server replays these frames through this same code to verify a score.
+const ACTIONS = ['left', 'right', 'jump', 'fire', 'pogo', 'start', 'pause'];
+let rec = null;
+function recordFrame() {
+  let m = 0;
+  ACTIONS.forEach((a, i) => { if (keys[a]) m |= 1 << i; if (pressed[a]) m |= 1 << (i + 7); });
+  const last = rec[rec.length - 1];
+  if (last && last[0] === m) last[1]++; else rec.push([m, 1]);
+}
+// run-length encoded, base 36: "mask*count.mask*count..."
+const encodeRec = (r) => r.map(([m, n]) => m.toString(36) + (n > 1 ? '*' + n.toString(36) : '')).join('.');
+function decodeRec(str) {
+  if (!str) return [];
+  return str.split('.').map((part) => {
+    const [m, n] = part.split('*');
+    return [parseInt(m, 36), n ? parseInt(n, 36) : 1];
+  });
+}
+// Apply one recorded frame's input, as the recorder saw it.
+function applyFrame(m) {
+  ACTIONS.forEach((a, i) => { keys[a] = !!(m & (1 << i)); pressed[a] = !!(m & (1 << (i + 7))); });
 }
 
 // ---------- state machine ----------
 function setState(s) { G.state = s; G.stateT = 0; }
-function newGame(level = 0) {
+function newGame(level = 0, seed = (Math.random() * 4294967296) >>> 0) {
+  G.seed = seed; rng = makeRng(seed); G.t = 0; rec = [];
   G.score = 0; G.lives = START_LIVES; G.ammo = 10; G.hasPogo = false; G.nextLifeAt = 20000;
   G.cheatUsed = G.cheat;
   G.levelIndex = level;
@@ -744,6 +801,7 @@ function newGame(level = 0) {
 }
 
 function update() {
+  if (rec && G.state !== 'title') recordFrame();
   G.t++; G.stateT++;
   if (pressed.mute) SFX.toggle();
   if (pressed.music) Music.toggle();
@@ -772,8 +830,8 @@ function update() {
       if (G.stateT > 60 && go) {
         // continue from the start of this era, but the score resets
         G.score = 0; G.lives = START_LIVES; G.nextLifeAt = 20000;
-        G.cheatUsed = G.cheat;
-        G.run = newRun();
+        G.cheatUsed = G.cheatUsed || G.cheat;
+        G.run.continued = true; // a continued run keeps one recording, but won't count for leaderboards
         loadLevel(G.levelIndex);
         setState('intro');
       }
@@ -1070,4 +1128,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // Expose a tiny hook for automated tests.
-window.SysCommander = { G, get L() { return L; }, newGame, keys, pressed, update, runSummary };
+window.SysCommander = { G, get L() { return L; }, newGame, keys, pressed, update, runSummary, decodeRec, applyFrame, GAME_VERSION };
