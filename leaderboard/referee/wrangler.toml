@@ -1,0 +1,17 @@
+# Cloudflare Worker config for the SysCommander referee.
+# Needs the Workers Paid plan: replaying a full run takes up to ~1 s of CPU (the free plan allows 10 ms).
+name = "syscommander-referee"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[limits]
+cpu_ms = 30000
+
+[vars]
+CHAIN_ID = "5701"                                            # zkSYS testnet
+CONTRACT = "0x0000000000000000000000000000000000000000"     # set after deploying the leaderboard contract
+SEASON = "1"
+ALLOWED_ORIGINS = "https://syscommander.org,https://www.syscommander.org,https://locutus75.github.io"
+
+# The signing key is a secret, never put it in this file:
+#   npx wrangler secret put REFEREE_KEY

@@ -1,0 +1,15 @@
+{
+  "name": "syscommander-referee",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker that replays SysCommander runs and signs verified scores for the zkSYS leaderboard",
+  "scripts": {
+    "build": "node ../scripts/build-game-factory.js",
+    "test": "node ../scripts/build-game-factory.js --check && node --test test/referee.test.js",
+    "dev": "wrangler dev",
+    "deploy": "node ../scripts/build-game-factory.js && wrangler deploy"
+  },
+  "dependencies": {
+    "viem": "^2.57.1"
+  }
+}

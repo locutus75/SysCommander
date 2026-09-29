@@ -85,5 +85,8 @@ node tools/test-replay.js    # every era replays frame-exactly; tampered runs ar
 node tools/replay.js run.json
 ```
 
+The optional on-chain leaderboard for zkSYS (referee Worker and contract) lives in
+[`leaderboard/`](leaderboard/README.md).
+
 `js/names.js` turns a wallet address into a stable, friendly player name such as
 "Turbo Pogo Whale #3F2A" (`node tools/test-names.js`).

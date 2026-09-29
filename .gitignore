@@ -1,0 +1,4 @@
+node_modules/
+leaderboard/contracts/cache/
+.wrangler/
+.dev.vars
