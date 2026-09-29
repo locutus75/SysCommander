@@ -40,6 +40,23 @@ cd leaderboard/contracts && npm install && npm test   # contract + end-to-end on
 The contract is compiled with solc-js (`scripts/compile.js`), and Hardhat only provides the
 local test chain.
 
+## Trying it locally
+
+Run the whole stack on your machine, with no real chain or Cloudflare account:
+
+```sh
+cd leaderboard/contracts && npx hardhat node          # terminal 1: local chain (chain ID 31337)
+cd leaderboard/contracts && RPC_URL=http://127.0.0.1:8545 \
+  DEPLOYER_KEY=<hardhat account #0 key> REFEREE_ADDRESS=<hardhat account #1 address> npm run deploy
+REFEREE_KEY=<hardhat account #1 key> CONTRACT=<deployed address> \
+  node leaderboard/scripts/dev-referee.mjs            # terminal 2: referee on http://localhost:8787
+python3 -m http.server 8080                           # terminal 3: the game
+```
+
+Then point `js/leaderboard-config.js` at `http://localhost:8787`, the contract and
+`chain: { id: 31337, rpc: 'http://127.0.0.1:8545', ... }`, and add the Hardhat network to your
+wallet. The Hardhat keys are public test keys: never use them anywhere else.
+
 ## Going live on zkSYS testnet
 
 zkSYS testnet: RPC `https://rpc-test-zk.syscoin.org/`, chain ID `5701`, currency TSYS (faucet on
@@ -64,12 +81,22 @@ the zkSYS testnet site).
    npx wrangler secret put REFEREE_KEY      # paste the referee's private key
    npm run deploy
    ```
-5. For every new season, call `setSeason(id, start, end)` from the deployer, and update `SEASON`
+5. **Connect the game.** Fill in `js/leaderboard-config.js` with the Worker URL and the contract
+   address. While `contract` is empty the leaderboard stays hidden, so this file is the on/off
+   switch. Once it's filled in, players see:
+   - a **SCOREBOARD** button on the title screen, which shows the season's top 10 with names
+     derived from the addresses. Reading it needs no wallet.
+   - after a game over or the victory screen, a **RECORD MY SCORE** panel. It connects Pali or
+     MetaMask (adding or switching to the zkSYS network if needed), has the referee verify the run,
+     and sends `submitScore`. Runs that can't count (cheat mode, continued, not started in Era I)
+     show why instead.
+6. For every new season, call `setSeason(id, start, end)` from the deployer, and update `SEASON`
    in `wrangler.toml`.
 
 Never commit private keys. The referee key only lives as a Cloudflare secret.
 
 ## After zkSYS mainnet
 
-Deploy the same contract to mainnet (`RPC_URL=...`), and set `CHAIN_ID` and `CONTRACT` in
-`wrangler.toml`. Nothing else changes.
+Deploy the same contract to mainnet (`RPC_URL=...`), set `CHAIN_ID` and `CONTRACT` in
+`wrangler.toml`, and update the chain and contract in `js/leaderboard-config.js`. Nothing else
+changes.

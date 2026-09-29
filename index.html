@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>SysCommander</title>
+  <link rel="icon" href="data:,">
   <meta name="description" content="A Commander Keen style fan game about the Syscoin journey.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,6 +28,28 @@
     #touch button.on { background: rgba(31, 94, 255, 0.7); }
     #touch .top { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: 10px; display: flex; gap: 8px; }
     #touch .top button { width: 46px; height: 32px; border-radius: 8px; font-size: 8px; }
+    /* optional zkSYS leaderboard (js/leaderboard.js) */
+    #lb button { font: 10px "Press Start 2P", monospace; color: #fff; background: #1f5eff; border: 2px solid #7aa5ff;
+      padding: 10px 12px; cursor: pointer; }
+    #lb button:hover { background: #3b74ff; }
+    #lb-open { position: fixed; left: 12px; top: calc(12px + env(safe-area-inset-top)); z-index: 5; }
+    .lb-panel { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6;
+      width: min(520px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; padding: 18px;
+      background: #080e28; border: 3px solid #fbbf24; box-shadow: 0 0 0 3px #000, 0 10px 40px rgba(0,0,0,0.6);
+      font-size: 10px; line-height: 1.7; color: #dbe6ff; user-select: text; -webkit-user-select: text; }
+    .lb-panel[hidden], #lb [hidden] { display: none !important; }
+    #lb-record { top: auto; bottom: 12px; transform: translateX(-50%); }
+    .lb-title { color: #fbbf24; margin-bottom: 12px; text-align: center; }
+    .lb-big { font-size: 16px; color: #7aa5ff; margin: 6px 0; }
+    .lb-row { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+    .lb-status { margin-top: 12px; min-height: 1.7em; }
+    .lb-status a { color: #7dd3fc; }
+    #lb-list { margin: 0; padding: 0; list-style: none; }
+    #lb-list .lb-rank { color: #fbbf24; min-width: 34px; }
+    #lb-list li { display: flex; gap: 10px; padding: 4px 0; border-bottom: 1px solid #1b2550; }
+    #lb-list .lb-name { flex: 1; }
+    #lb-list .lb-score { color: #fff; min-width: 70px; text-align: right; }
+    #lb-list .lb-time { color: #ff9f9f; min-width: 50px; text-align: right; }
   </style>
 </head>
 <body>
@@ -53,5 +76,7 @@
   <script src="js/levels.js"></script>
   <script src="js/render.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/leaderboard-config.js"></script>
+  <script src="js/leaderboard.js"></script>
 </body>
 </html>
